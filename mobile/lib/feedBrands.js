@@ -1,0 +1,2 @@
+// This file imports from the shared data to avoid duplication
+export { FEED_BRANDS, LOCAL_FEED_MIXES, getRecommendedFeeds, getLocalFeedMix, calculateLocalFeedCost } from '../../shared/data/feedBrands.js';
