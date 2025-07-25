@@ -6,6 +6,7 @@ import { OfflineIndicator } from '../components/OfflineIndicator';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ToastProvider } from '../components/Toast';
 import FirebaseProvider from '../components/FirebaseProvider';
+import { Analytics } from '@vercel/analytics/next';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -161,6 +162,7 @@ export default function RootLayout({ children }) {
             `,
           }}
         />
+        <Analytics />
       </body>
     </html>
   );
