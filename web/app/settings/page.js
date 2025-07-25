@@ -15,9 +15,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { isAuthenticated, signOut, user } = useFirebaseAuthStore();
   const { 
-    settings, 
     globalSettings, 
-    useGlobalSettings, 
     isLoadingGlobal, 
     updateSettings, 
     resetToDefaults, 
@@ -88,7 +86,7 @@ export default function SettingsPage() {
       });
       setIsLoading(false);
     }
-  }, [settings, globalSettings, useGlobalSettings, getActiveSettings]);
+  }, [globalSettings, getActiveSettings]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -344,6 +342,22 @@ export default function SettingsPage() {
           {/* Site Settings Tab */}
           {activeTab === 'site' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {!user ? (
+                <div className="col-span-full bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-8 text-center">
+                  <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">🔒</span>
+                  </div>
+                  <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+                    Authentication Required
+                  </h3>
+                  <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+                    You must be logged in to access and modify site settings.
+                  </p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-500">
+                    Settings are now stored globally and require authentication for security.
+                  </p>
+                </div>
+              ) : (
               <div className="space-y-6">
                 {/* Settings Status */}
                 <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
@@ -360,14 +374,14 @@ export default function SettingsPage() {
                         ) : (
                           <>
                             <div className={`w-2 h-2 rounded-full ${
-                              useGlobalSettings && globalSettings 
+                              user && globalSettings 
                                 ? 'bg-green-500' 
-                                : 'bg-yellow-500'
+                                : 'bg-red-500'
                             }`}></div>
                             <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                              {useGlobalSettings && globalSettings 
+                              {user && globalSettings 
                                 ? 'Global (Firebase)' 
-                                : 'Local (Device Only)'}
+                                : 'Authentication Required'}
                             </span>
                           </>
                         )}
@@ -375,10 +389,10 @@ export default function SettingsPage() {
                     </div>
                     
                     <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                      {useGlobalSettings && globalSettings ? (
+                      {user && globalSettings ? (
                         <>✅ Settings are synchronized across all devices and users. Changes made here will be visible to everyone.</>  
                       ) : (
-                        <>⚠️ Settings are stored locally on this device only. Changes will not sync to other devices or users. {!globalSettings && 'Global settings not available - check Firebase connection.'}</>  
+                        <>🔒 Authentication required to access global settings. Please log in to manage site settings. {!globalSettings && user && 'Global settings not available - check Firebase connection.'}</>  
                       )}
                     </div>
                     

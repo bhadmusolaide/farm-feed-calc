@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { globalSettingsDB, checkGlobalSettingsExist } from './globalSettingsDB';
 import useFirebaseAuthStore from './firebaseAuthStore';
 
@@ -33,16 +32,13 @@ const DEFAULT_SETTINGS = {
   logoVersion: Date.now()
 };
 
-export const useSiteSettingsStore = create(
-  persist(
-    (set, get) => ({
+export const useSiteSettingsStore = create((set, get) => ({
       // State
-      settings: DEFAULT_SETTINGS,
-      globalSettings: null, // Settings from Firebase
+      globalSettings: DEFAULT_SETTINGS, // Settings from Firebase (now the only source)
       isLoading: false,
       isLoadingGlobal: false,
       error: null,
-      useGlobalSettings: true, // Flag to use global vs local settings
+      requiresAuth: true, // Always require authentication for settings
 
       // Actions
       
@@ -50,40 +46,52 @@ export const useSiteSettingsStore = create(
       loadGlobalSettings: async () => {
         set({ isLoadingGlobal: true, error: null });
         try {
+          const { user } = useFirebaseAuthStore.getState();
+          if (!user) {
+            throw new Error('Authentication required for global settings');
+          }
+
           const { data, error } = await globalSettingsDB.get();
           if (error) {
-            console.warn('Could not load global settings:', error.message);
-            set({ isLoadingGlobal: false, useGlobalSettings: false });
-            return;
+            throw new Error(`Failed to load global settings: ${error.message}`);
           }
           
           if (data) {
             set({ 
               globalSettings: data,
-              isLoadingGlobal: false,
-              useGlobalSettings: true
+              isLoadingGlobal: false
             });
           } else {
-            set({ isLoadingGlobal: false, useGlobalSettings: false });
+            // Initialize with default settings if none exist
+            const { error: initError } = await globalSettingsDB.update(DEFAULT_SETTINGS);
+            if (initError) {
+              throw new Error(`Failed to initialize global settings: ${initError.message}`);
+            }
+            set({ 
+              globalSettings: DEFAULT_SETTINGS,
+              isLoadingGlobal: false
+            });
           }
         } catch (error) {
-          console.warn('Error loading global settings:', error);
+          console.error('Error loading global settings:', error);
           set({ 
             error: error.message,
-            isLoadingGlobal: false,
-            useGlobalSettings: false
+            isLoadingGlobal: false
           });
+          throw error;
         }
       },
 
-      // Update settings (saves to Firebase if admin, otherwise local only)
+      // Update settings (requires authentication, saves to Firebase only)
       updateSettings: async (newSettings) => {
         set({ isLoading: true, error: null });
         try {
           const { user } = useFirebaseAuthStore.getState();
-          const currentSettings = get().useGlobalSettings && get().globalSettings 
-            ? get().globalSettings 
-            : get().settings;
+          if (!user) {
+            throw new Error('Authentication required to update settings');
+          }
+
+          const currentSettings = get().globalSettings;
           
           // Check if logo URLs are being updated to increment cache-busting version
           const logoChanged = newSettings.logoUrl !== undefined && newSettings.logoUrl !== currentSettings.logoUrl;
@@ -113,26 +121,15 @@ export const useSiteSettingsStore = create(
             logoVersion: (logoChanged || footerLogoChanged) ? Date.now() : currentSettings.logoVersion
           };
 
-          // If user is authenticated, try to save to Firebase (global settings)
-          if (user) {
-            const { error: dbError } = await globalSettingsDB.update(validatedSettings);
-            if (!dbError) {
-              // Successfully saved to Firebase, update global settings
-              set({ 
-                globalSettings: validatedSettings,
-                useGlobalSettings: true,
-                isLoading: false 
-              });
-              return validatedSettings;
-            } else {
-              console.warn('Could not save to global settings:', dbError.message);
-              // Fall back to local storage
-            }
+          // Save to Firebase (global settings only)
+          const { error: dbError } = await globalSettingsDB.update(validatedSettings);
+          if (dbError) {
+            throw new Error(`Failed to save settings: ${dbError.message}`);
           }
-          
-          // Save locally (fallback or when not authenticated)
+
+          // Successfully saved to Firebase, update state
           set({ 
-            settings: validatedSettings,
+            globalSettings: validatedSettings,
             isLoading: false 
           });
           
@@ -149,12 +146,24 @@ export const useSiteSettingsStore = create(
       resetToDefaults: async () => {
         set({ isLoading: true, error: null });
         try {
+          const { user } = useFirebaseAuthStore.getState();
+          if (!user) {
+            throw new Error('Authentication required to reset settings');
+          }
+
           const resetSettings = { 
             ...DEFAULT_SETTINGS,
             logoVersion: Date.now() // Generate new version to force cache refresh
           };
+
+          // Save to Firebase
+          const { error: dbError } = await globalSettingsDB.update(resetSettings);
+          if (dbError) {
+            throw new Error(`Failed to reset settings: ${dbError.message}`);
+          }
+
           set({ 
-            settings: resetSettings,
+            globalSettings: resetSettings,
             isLoading: false 
           });
           return resetSettings;
@@ -172,17 +181,9 @@ export const useSiteSettingsStore = create(
         await get().loadGlobalSettings();
       },
 
-      // Toggle between global and local settings
-      toggleGlobalSettings: (useGlobal) => {
-        set({ useGlobalSettings: useGlobal });
-      },
-
-      // Get current active settings (global or local)
+      // Get current settings (always global)
       getActiveSettings: () => {
-        const state = get();
-        return state.useGlobalSettings && state.globalSettings 
-          ? state.globalSettings 
-          : state.settings;
+        return get().globalSettings;
       },
 
       // Getters for specific settings (uses active settings)
@@ -217,15 +218,7 @@ export const useSiteSettingsStore = create(
 
       // Clear error
       clearError: () => set({ error: null })
-    }),
-    {
-      name: 'site-settings-storage',
-      version: 1,
-      // Only persist the settings, not loading states
-      partialize: (state) => ({ settings: state.settings })
-    }
-  )
-);
+}));
 
 // Export default settings for use in components
 export { DEFAULT_SETTINGS };
