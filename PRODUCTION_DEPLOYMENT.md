@@ -58,6 +58,14 @@ npm run start
    NODE_ENV=production
    NEXT_PUBLIC_APP_NAME=Poultry Feed Calculator
    NEXT_PUBLIC_APP_VERSION=1.0.0
+   
+   # Firebase Configuration (REQUIRED for global settings)
+   NEXT_PUBLIC_FIREBASE_API_KEY=your-firebase-api-key
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+   NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
    ```
 
 3. **Deploy**
@@ -111,6 +119,14 @@ pm2 startup
 NODE_ENV=production
 NEXT_PUBLIC_APP_NAME="Poultry Feed Calculator"
 NEXT_PUBLIC_APP_VERSION="1.0.0"
+
+# Firebase Configuration (REQUIRED for global settings)
+NEXT_PUBLIC_FIREBASE_API_KEY=your-firebase-api-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
 
 # Optional: Analytics and monitoring
 NEXT_PUBLIC_GA_ID=your-google-analytics-id

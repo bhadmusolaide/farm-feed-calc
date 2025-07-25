@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { globalSettingsDB, checkGlobalSettingsExist } from './globalSettingsDB';
 import useFirebaseAuthStore from './firebaseAuthStore';
 
@@ -32,13 +33,16 @@ const DEFAULT_SETTINGS = {
   logoVersion: Date.now()
 };
 
-export const useSiteSettingsStore = create((set, get) => ({
+export const useSiteSettingsStore = create(
+  persist(
+    (set, get) => ({
       // State
-      globalSettings: DEFAULT_SETTINGS, // Settings from Firebase (now the only source)
+      settings: DEFAULT_SETTINGS,
+      globalSettings: null, // Settings from Firebase
       isLoading: false,
       isLoadingGlobal: false,
       error: null,
-      requiresAuth: true, // Always require authentication for settings
+      useGlobalSettings: true, // Flag to use global vs local settings
 
       // Actions
       
@@ -46,52 +50,73 @@ export const useSiteSettingsStore = create((set, get) => ({
       loadGlobalSettings: async () => {
         set({ isLoadingGlobal: true, error: null });
         try {
-          const { user } = useFirebaseAuthStore.getState();
-          if (!user) {
-            throw new Error('Authentication required for global settings');
+          // Check if Firebase is properly configured
+          const firebaseConfig = {
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+          };
+          
+          const missingVars = Object.entries(firebaseConfig)
+            .filter(([key, value]) => !value)
+            .map(([key]) => key);
+          
+          if (missingVars.length > 0) {
+            console.warn('Firebase not configured. Missing environment variables:', missingVars);
+            set({ 
+              isLoadingGlobal: false, 
+              useGlobalSettings: false,
+              error: `Firebase not configured. Missing: ${missingVars.join(', ')}`
+            });
+            return;
           }
-
+          
           const { data, error } = await globalSettingsDB.get();
           if (error) {
-            throw new Error(`Failed to load global settings: ${error.message}`);
+            console.warn('Could not load global settings:', error.message);
+            set({ 
+              isLoadingGlobal: false, 
+              useGlobalSettings: false,
+              error: `Firebase connection failed: ${error.message}`
+            });
+            return;
           }
           
           if (data) {
             set({ 
               globalSettings: data,
-              isLoadingGlobal: false
+              isLoadingGlobal: false,
+              useGlobalSettings: true,
+              error: null
             });
           } else {
-            // Initialize with default settings if none exist
-            const { error: initError } = await globalSettingsDB.update(DEFAULT_SETTINGS);
-            if (initError) {
-              throw new Error(`Failed to initialize global settings: ${initError.message}`);
-            }
             set({ 
-              globalSettings: DEFAULT_SETTINGS,
-              isLoadingGlobal: false
+              isLoadingGlobal: false, 
+              useGlobalSettings: false,
+              error: 'Global settings not found in Firebase'
             });
           }
         } catch (error) {
-          console.error('Error loading global settings:', error);
+          console.warn('Error loading global settings:', error);
           set({ 
-            error: error.message,
-            isLoadingGlobal: false
+            error: `Firebase error: ${error.message}`,
+            isLoadingGlobal: false,
+            useGlobalSettings: false
           });
-          throw error;
         }
       },
 
-      // Update settings (requires authentication, saves to Firebase only)
+      // Update settings (saves to Firebase if admin, otherwise local only)
       updateSettings: async (newSettings) => {
         set({ isLoading: true, error: null });
         try {
           const { user } = useFirebaseAuthStore.getState();
-          if (!user) {
-            throw new Error('Authentication required to update settings');
-          }
-
-          const currentSettings = get().globalSettings;
+          const currentSettings = get().useGlobalSettings && get().globalSettings 
+            ? get().globalSettings 
+            : get().settings;
           
           // Check if logo URLs are being updated to increment cache-busting version
           const logoChanged = newSettings.logoUrl !== undefined && newSettings.logoUrl !== currentSettings.logoUrl;
@@ -121,15 +146,26 @@ export const useSiteSettingsStore = create((set, get) => ({
             logoVersion: (logoChanged || footerLogoChanged) ? Date.now() : currentSettings.logoVersion
           };
 
-          // Save to Firebase (global settings only)
-          const { error: dbError } = await globalSettingsDB.update(validatedSettings);
-          if (dbError) {
-            throw new Error(`Failed to save settings: ${dbError.message}`);
+          // If user is authenticated, try to save to Firebase (global settings)
+          if (user) {
+            const { error: dbError } = await globalSettingsDB.update(validatedSettings);
+            if (!dbError) {
+              // Successfully saved to Firebase, update global settings
+              set({ 
+                globalSettings: validatedSettings,
+                useGlobalSettings: true,
+                isLoading: false 
+              });
+              return validatedSettings;
+            } else {
+              console.warn('Could not save to global settings:', dbError.message);
+              // Fall back to local storage
+            }
           }
-
-          // Successfully saved to Firebase, update state
+          
+          // Save locally (fallback or when not authenticated)
           set({ 
-            globalSettings: validatedSettings,
+            settings: validatedSettings,
             isLoading: false 
           });
           
@@ -146,24 +182,12 @@ export const useSiteSettingsStore = create((set, get) => ({
       resetToDefaults: async () => {
         set({ isLoading: true, error: null });
         try {
-          const { user } = useFirebaseAuthStore.getState();
-          if (!user) {
-            throw new Error('Authentication required to reset settings');
-          }
-
           const resetSettings = { 
             ...DEFAULT_SETTINGS,
             logoVersion: Date.now() // Generate new version to force cache refresh
           };
-
-          // Save to Firebase
-          const { error: dbError } = await globalSettingsDB.update(resetSettings);
-          if (dbError) {
-            throw new Error(`Failed to reset settings: ${dbError.message}`);
-          }
-
           set({ 
-            globalSettings: resetSettings,
+            settings: resetSettings,
             isLoading: false 
           });
           return resetSettings;
@@ -181,9 +205,17 @@ export const useSiteSettingsStore = create((set, get) => ({
         await get().loadGlobalSettings();
       },
 
-      // Get current settings (always global)
+      // Toggle between global and local settings
+      toggleGlobalSettings: (useGlobal) => {
+        set({ useGlobalSettings: useGlobal });
+      },
+
+      // Get current active settings (global or local)
       getActiveSettings: () => {
-        return get().globalSettings;
+        const state = get();
+        return state.useGlobalSettings && state.globalSettings 
+          ? state.globalSettings 
+          : state.settings;
       },
 
       // Getters for specific settings (uses active settings)
@@ -218,7 +250,15 @@ export const useSiteSettingsStore = create((set, get) => ({
 
       // Clear error
       clearError: () => set({ error: null })
-}));
+    }),
+    {
+      name: 'site-settings-storage',
+      version: 1,
+      // Only persist the settings, not loading states
+      partialize: (state) => ({ settings: state.settings })
+    }
+  )
+);
 
 // Export default settings for use in components
 export { DEFAULT_SETTINGS };
