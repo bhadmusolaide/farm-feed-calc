@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import notificationService from './lib/notificationService';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -36,6 +37,18 @@ export default function App() {
   });
 
   useEffect(() => {
+    // Initialize notification service
+    const initializeNotifications = async () => {
+      try {
+        await notificationService.initialize();
+        console.log('Notification service initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize notification service:', error);
+      }
+    };
+
+    initializeNotifications();
+
     if (fontsLoaded) {
       SplashScreen.hideAsync();
     }

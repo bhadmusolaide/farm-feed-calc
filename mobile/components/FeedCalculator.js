@@ -31,7 +31,10 @@ export default function FeedCalculator() {
     calculateFeedRequirements,
   } = useFeedStore();
 
-  const [ageInput, setAgeInput] = useState(ageUnit === 'weeks' ? Math.floor(ageInDays / 7).toString() : ageInDays.toString());
+  const [ageInput, setAgeInput] = useState(() => {
+    const initialAge = ageUnit === 'weeks' ? Math.floor(ageInDays / 7) : ageInDays;
+    return initialAge === 0 ? '' : initialAge.toString();
+  });
   const [selectedBreedForModal, setSelectedBreedForModal] = useState(null);
   const [isBreedModalVisible, setIsBreedModalVisible] = useState(false);
 
@@ -42,18 +45,19 @@ export default function FeedCalculator() {
 
   const handleAgeChange = (value) => {
     setAgeInput(value);
-    const numValue = parseInt(value) || 0;
+    const numValue = value === '' ? 0 : parseInt(value) || 0;
     setAge(numValue, ageUnit);
   };
 
   const handleAgeUnitChange = (unit) => {
-    const currentAge = parseInt(ageInput) || 0;
+    const currentAge = ageInput === '' ? 0 : parseInt(ageInput) || 0;
     setAge(currentAge, unit);
     // Update input display
     if (unit === 'weeks') {
-      setAgeInput(Math.floor(ageInDays / 7).toString());
+      const weeksAge = Math.floor(ageInDays / 7);
+      setAgeInput(weeksAge === 0 ? '' : weeksAge.toString());
     } else {
-      setAgeInput(ageInDays.toString());
+      setAgeInput(ageInDays === 0 ? '' : ageInDays.toString());
     }
   };
 
@@ -347,7 +351,7 @@ export default function FeedCalculator() {
         </Text>
       </View>
 
-      {/* Quantity Input */
+      {/* Quantity Input */}
       <View style={{
         backgroundColor: theme.colors.card,
         borderRadius: 16,
@@ -372,8 +376,8 @@ export default function FeedCalculator() {
              backgroundColor: theme.colors.surface,
              color: theme.colors.text
            }}
-           value={quantity.toString()}
-           onChangeText={(value) => setQuantity(parseInt(value) || 0)}
+           value={quantity === 0 ? '' : quantity.toString()}
+           onChangeText={(value) => setQuantity(value === '' ? 0 : parseInt(value) || 0)}
            placeholder="Enter number of birds"
            keyboardType="numeric"
            placeholderTextColor={theme.colors.onSurfaceVariant}

@@ -39,11 +39,12 @@ export default function FeedCalculator() {
 
   const handleAgeChange = (value, unit) => {
     if (unit === 'days') {
-      setAge(parseInt(value) || 0);
+      setAge(value === '' ? 0 : parseInt(value) || 0);
     } else {
-      const days = (parseInt(value) || 0) * 7;
+      const numValue = value === '' ? 0 : parseInt(value) || 0;
+      const days = numValue * 7;
       setAge(days);
-      setAgeWeeks(parseInt(value) || 0);
+      setAgeWeeks(numValue);
     }
   };
 
@@ -246,7 +247,7 @@ export default function FeedCalculator() {
               {ageInput === 'days' ? (
                 <input
                   type="number"
-                  value={ageInDays}
+                  value={ageInDays === 0 ? '' : ageInDays}
                   onChange={(e) => handleAgeChange(e.target.value, 'days')}
                   placeholder="Enter age in days"
                   min="1"
@@ -256,9 +257,10 @@ export default function FeedCalculator() {
               ) : (
                 <input
                   type="number"
-                  value={ageWeeks}
+                  value={ageWeeks === 0 ? '' : ageWeeks}
                   onChange={(e) => {
-                    setAgeWeeks(parseInt(e.target.value) || 0);
+                    const numValue = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
+                    setAgeWeeks(numValue);
                     handleAgeChange(e.target.value, 'weeks');
                   }}
                   placeholder="Enter age in weeks"
@@ -282,8 +284,8 @@ export default function FeedCalculator() {
             <input
               id="quantity"
               type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
+              value={quantity === 0 ? '' : quantity}
+              onChange={(e) => setQuantity(e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
               placeholder="Enter number of birds"
               min="1"
               max="10000"

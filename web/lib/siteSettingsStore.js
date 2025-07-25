@@ -26,7 +26,9 @@ const DEFAULT_SETTINGS = {
   recommendedFeeds: {
     title: 'Recommended Feeds',
     description: 'Browse our curated selection of quality feed brands'
-  }
+  },
+  // Cache-busting version for logo updates
+  logoVersion: Date.now()
 };
 
 export const useSiteSettingsStore = create(
@@ -43,6 +45,11 @@ export const useSiteSettingsStore = create(
         try {
           // Validate settings
           const currentSettings = get().settings;
+          
+          // Check if logo URLs are being updated to increment cache-busting version
+          const logoChanged = newSettings.logoUrl !== undefined && newSettings.logoUrl !== currentSettings.logoUrl;
+          const footerLogoChanged = newSettings.footer?.logoUrl !== undefined && newSettings.footer.logoUrl !== currentSettings.footer.logoUrl;
+          
           const validatedSettings = {
             ...currentSettings,
             ...newSettings,
@@ -62,7 +69,9 @@ export const useSiteSettingsStore = create(
             recommendedFeeds: {
               ...currentSettings.recommendedFeeds,
               ...(newSettings.recommendedFeeds || {})
-            }
+            },
+            // Update logo version if any logo URL changed
+            logoVersion: (logoChanged || footerLogoChanged) ? Date.now() : currentSettings.logoVersion
           };
 
           set({ 
@@ -83,11 +92,15 @@ export const useSiteSettingsStore = create(
       resetToDefaults: async () => {
         set({ isLoading: true, error: null });
         try {
+          const resetSettings = { 
+            ...DEFAULT_SETTINGS,
+            logoVersion: Date.now() // Generate new version to force cache refresh
+          };
           set({ 
-            settings: { ...DEFAULT_SETTINGS },
+            settings: resetSettings,
             isLoading: false 
           });
-          return DEFAULT_SETTINGS;
+          return resetSettings;
         } catch (error) {
           set({ 
             error: error.message,
@@ -100,8 +113,26 @@ export const useSiteSettingsStore = create(
       // Getters for specific settings
       getSiteTitle: () => get().settings.siteTitle,
       getSiteDescription: () => get().settings.siteDescription,
-      getLogoUrl: () => get().settings.logoUrl,
-      getFooterLogoUrl: () => get().settings.footer.logoUrl,
+      getLogoUrl: () => {
+        const settings = get().settings;
+        const logoUrl = settings.logoUrl;
+        if (!logoUrl) return logoUrl;
+        // Add cache-busting parameter for relative URLs (public folder assets)
+        if (logoUrl.startsWith('/') && !logoUrl.includes('?')) {
+          return `${logoUrl}?v=${settings.logoVersion}`;
+        }
+        return logoUrl;
+      },
+      getFooterLogoUrl: () => {
+        const settings = get().settings;
+        const footerLogoUrl = settings.footer.logoUrl;
+        if (!footerLogoUrl) return footerLogoUrl;
+        // Add cache-busting parameter for relative URLs (public folder assets)
+        if (footerLogoUrl.startsWith('/') && !footerLogoUrl.includes('?')) {
+          return `${footerLogoUrl}?v=${settings.logoVersion}`;
+        }
+        return footerLogoUrl;
+      },
       getFooterDescription: () => get().settings.footer.description,
       getFooterFeatures: () => get().settings.footer.features,
       getFooterSupport: () => get().settings.footer.support,
