@@ -14,7 +14,17 @@ import LoginForm from '../../components/LoginForm';
 export default function SettingsPage() {
   const router = useRouter();
   const { isAuthenticated, signOut, user } = useFirebaseAuthStore();
-  const { settings, updateSettings, resetToDefaults } = useSiteSettingsStore();
+  const { 
+    settings, 
+    globalSettings, 
+    useGlobalSettings, 
+    isLoadingGlobal, 
+    updateSettings, 
+    resetToDefaults, 
+    initialize, 
+    loadGlobalSettings,
+    getActiveSettings 
+  } = useSiteSettingsStore();
   const { 
     feeds, 
     localMixes, 
@@ -53,23 +63,32 @@ export default function SettingsPage() {
     recommendedFeedsDescription: '',
   });
 
+  // Initialize global settings on component mount
   useEffect(() => {
-    if (settings && settings.footer && settings.recommendedFeeds) {
+    const initializeSettings = async () => {
+      await initialize();
+    };
+    initializeSettings();
+  }, [initialize]);
+
+  useEffect(() => {
+    const activeSettings = getActiveSettings();
+    if (activeSettings && activeSettings.footer && activeSettings.recommendedFeeds) {
       setFormData({
-        siteTitle: settings.siteTitle || '',
-        siteDescription: settings.siteDescription || '',
-        logoUrl: settings.logoUrl || '',
-        footerLogoUrl: settings.footer.logoUrl || '',
-        footerDescription: settings.footer.description || '',
-        footerFeatures: [...(settings.footer.features || [])],
-        footerSupport: [...(settings.footer.support || [])],
-        footerCopyright: settings.footer.copyright || '',
-        recommendedFeedsTitle: settings.recommendedFeeds.title || '',
-        recommendedFeedsDescription: settings.recommendedFeeds.description || '',
+        siteTitle: activeSettings.siteTitle || '',
+        siteDescription: activeSettings.siteDescription || '',
+        logoUrl: activeSettings.logoUrl || '',
+        footerLogoUrl: activeSettings.footer.logoUrl || '',
+        footerDescription: activeSettings.footer.description || '',
+        footerFeatures: [...(activeSettings.footer.features || [])],
+        footerSupport: [...(activeSettings.footer.support || [])],
+        footerCopyright: activeSettings.footer.copyright || '',
+        recommendedFeedsTitle: activeSettings.recommendedFeeds.title || '',
+        recommendedFeedsDescription: activeSettings.recommendedFeeds.description || '',
       });
       setIsLoading(false);
     }
-  }, [settings]);
+  }, [settings, globalSettings, useGlobalSettings, getActiveSettings]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -326,6 +345,60 @@ export default function SettingsPage() {
           {activeTab === 'site' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-6">
+                {/* Settings Status */}
+                <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
+                  <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+                    Settings Status
+                  </h2>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-neutral-600 dark:text-neutral-400">Settings Source:</span>
+                      <div className="flex items-center space-x-2">
+                        {isLoadingGlobal ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                        ) : (
+                          <>
+                            <div className={`w-2 h-2 rounded-full ${
+                              useGlobalSettings && globalSettings 
+                                ? 'bg-green-500' 
+                                : 'bg-yellow-500'
+                            }`}></div>
+                            <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                              {useGlobalSettings && globalSettings 
+                                ? 'Global (Firebase)' 
+                                : 'Local (Device Only)'}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                      {useGlobalSettings && globalSettings ? (
+                        <>✅ Settings are synchronized across all devices and users. Changes made here will be visible to everyone.</>  
+                      ) : (
+                        <>⚠️ Settings are stored locally on this device only. Changes will not sync to other devices or users. {!globalSettings && 'Global settings not available - check Firebase connection.'}</>  
+                      )}
+                    </div>
+                    
+                    {user && (
+                      <div className="text-xs text-blue-600 dark:text-blue-400">
+                        👤 Logged in as: {user.email}
+                      </div>
+                    )}
+                    
+                    {!globalSettings && (
+                      <button
+                        onClick={loadGlobalSettings}
+                        disabled={isLoadingGlobal}
+                        className="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 underline"
+                      >
+                        {isLoadingGlobal ? 'Loading...' : 'Retry loading global settings'}
+                      </button>
+                    )}
+                  </div>
+                </div>
                 {/* Header Settings */}
                 <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
                   <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
@@ -373,6 +446,9 @@ export default function SettingsPage() {
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                         Use relative paths (e.g., /omzo_farmz_logo.png) or full URLs. Leave empty to use the default chicken icon.
                       </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                        ⚠️ Note: Logo is currently hardcoded to /omzo_farmz_logo.png for production consistency.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -397,6 +473,9 @@ export default function SettingsPage() {
                       />
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                         Footer logo will be 3x larger than the header logo. Use relative paths or full URLs.
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                        ⚠️ Note: Footer logo is currently hardcoded to /omzo_farmz_logo.png for production consistency.
                       </p>
                     </div>
                     

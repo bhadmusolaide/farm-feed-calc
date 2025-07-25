@@ -21,7 +21,7 @@ export default function Header() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const { resetForm } = useFeedStore();
-  const { getSiteTitle, getSiteDescription, getLogoUrl } = useSiteSettingsStore();
+  const { getSiteTitle, getSiteDescription } = useSiteSettingsStore();
 
   const handleReset = () => {
     if (confirm('Are you sure you want to reset all inputs? This will clear your current calculation.')) {
@@ -38,18 +38,16 @@ export default function Header() {
             <div className="flex items-center space-x-3">
               <div className="flex-shrink-0 interactive-scale">
                 <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg animate-glow">
-                  {getLogoUrl() ? (
-                    <img 
-                      src={getLogoUrl()} 
-                      alt="Logo" 
-                      className="w-10 h-10 object-contain rounded-lg"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'block';
-                      }}
-                    />
-                  ) : null}
-                  <div style={{ display: getLogoUrl() ? 'none' : 'block' }}>
+                  <img 
+                    src="/omzo_farmz_logo.png" 
+                    alt="Omzo Farmz Logo" 
+                    className="w-10 h-10 object-contain rounded-lg"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
+                  />
+                  <div style={{ display: 'none' }}>
                     <ChickenIcon />
                   </div>
                 </div>

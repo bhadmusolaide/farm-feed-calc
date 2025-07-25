@@ -49,7 +49,7 @@ const tabs = [
 export default function HomePage() {
   const { activeTab, setActiveTab, showResults } = useFeedStore();
   const { loadWeeklyKnowledge } = useKnowledgeStore();
-  const { getSiteTitle, getFooterDescription, getFooterFeatures, getFooterSupport, getFooterCopyright, getFooterLogoUrl } = useSiteSettingsStore();
+  const { getSiteTitle, getFooterDescription, getFooterFeatures, getFooterSupport, getFooterCopyright } = useSiteSettingsStore();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -153,16 +153,14 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <div className="flex items-center space-x-4 mb-4">
-                {getFooterLogoUrl() && (
-                  <img 
-                    src={getFooterLogoUrl()} 
-                    alt="Footer Logo" 
-                    className="w-32 h-32 object-contain rounded-lg"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                )}
+                <img 
+                  src="/omzo_farmz_logo.png" 
+                  alt="Omzo Farmz Logo" 
+                  className="w-32 h-32 object-contain rounded-lg"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
                 <h3 className="font-display font-semibold text-neutral-900 dark:text-neutral-100">
                   {getSiteTitle()}
                 </h3>

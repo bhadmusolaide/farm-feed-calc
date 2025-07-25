@@ -6,6 +6,7 @@ import { OfflineIndicator } from '../components/OfflineIndicator';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ToastProvider } from '../components/Toast';
 import FirebaseProvider from '../components/FirebaseProvider';
+import SettingsInitializer from '../components/SettingsInitializer';
 import { Analytics } from '@vercel/analytics/next';
 
 const inter = Inter({
@@ -109,6 +110,7 @@ export default function RootLayout({ children }) {
           <FirebaseProvider>
             <ThemeProvider>
               <ToastProvider>
+                <SettingsInitializer />
                 <OfflineIndicator />
                 <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800">
                   {children}

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { globalSettingsDB, checkGlobalSettingsExist } from './globalSettingsDB';
+import useFirebaseAuthStore from './firebaseAuthStore';
 
 // Default settings
 const DEFAULT_SETTINGS = {
@@ -36,15 +38,52 @@ export const useSiteSettingsStore = create(
     (set, get) => ({
       // State
       settings: DEFAULT_SETTINGS,
+      globalSettings: null, // Settings from Firebase
       isLoading: false,
+      isLoadingGlobal: false,
       error: null,
+      useGlobalSettings: true, // Flag to use global vs local settings
 
       // Actions
+      
+      // Load global settings from Firebase
+      loadGlobalSettings: async () => {
+        set({ isLoadingGlobal: true, error: null });
+        try {
+          const { data, error } = await globalSettingsDB.get();
+          if (error) {
+            console.warn('Could not load global settings:', error.message);
+            set({ isLoadingGlobal: false, useGlobalSettings: false });
+            return;
+          }
+          
+          if (data) {
+            set({ 
+              globalSettings: data,
+              isLoadingGlobal: false,
+              useGlobalSettings: true
+            });
+          } else {
+            set({ isLoadingGlobal: false, useGlobalSettings: false });
+          }
+        } catch (error) {
+          console.warn('Error loading global settings:', error);
+          set({ 
+            error: error.message,
+            isLoadingGlobal: false,
+            useGlobalSettings: false
+          });
+        }
+      },
+
+      // Update settings (saves to Firebase if admin, otherwise local only)
       updateSettings: async (newSettings) => {
         set({ isLoading: true, error: null });
         try {
-          // Validate settings
-          const currentSettings = get().settings;
+          const { user } = useFirebaseAuthStore.getState();
+          const currentSettings = get().useGlobalSettings && get().globalSettings 
+            ? get().globalSettings 
+            : get().settings;
           
           // Check if logo URLs are being updated to increment cache-busting version
           const logoChanged = newSettings.logoUrl !== undefined && newSettings.logoUrl !== currentSettings.logoUrl;
@@ -74,6 +113,24 @@ export const useSiteSettingsStore = create(
             logoVersion: (logoChanged || footerLogoChanged) ? Date.now() : currentSettings.logoVersion
           };
 
+          // If user is authenticated, try to save to Firebase (global settings)
+          if (user) {
+            const { error: dbError } = await globalSettingsDB.update(validatedSettings);
+            if (!dbError) {
+              // Successfully saved to Firebase, update global settings
+              set({ 
+                globalSettings: validatedSettings,
+                useGlobalSettings: true,
+                isLoading: false 
+              });
+              return validatedSettings;
+            } else {
+              console.warn('Could not save to global settings:', dbError.message);
+              // Fall back to local storage
+            }
+          }
+          
+          // Save locally (fallback or when not authenticated)
           set({ 
             settings: validatedSettings,
             isLoading: false 
@@ -110,11 +167,29 @@ export const useSiteSettingsStore = create(
         }
       },
 
-      // Getters for specific settings
-      getSiteTitle: () => get().settings.siteTitle,
-      getSiteDescription: () => get().settings.siteDescription,
+      // Initialize store - load global settings if available
+      initialize: async () => {
+        await get().loadGlobalSettings();
+      },
+
+      // Toggle between global and local settings
+      toggleGlobalSettings: (useGlobal) => {
+        set({ useGlobalSettings: useGlobal });
+      },
+
+      // Get current active settings (global or local)
+      getActiveSettings: () => {
+        const state = get();
+        return state.useGlobalSettings && state.globalSettings 
+          ? state.globalSettings 
+          : state.settings;
+      },
+
+      // Getters for specific settings (uses active settings)
+      getSiteTitle: () => get().getActiveSettings().siteTitle,
+      getSiteDescription: () => get().getActiveSettings().siteDescription,
       getLogoUrl: () => {
-        const settings = get().settings;
+        const settings = get().getActiveSettings();
         const logoUrl = settings.logoUrl;
         if (!logoUrl) return logoUrl;
         // Add cache-busting parameter for relative URLs (public folder assets)
@@ -124,7 +199,7 @@ export const useSiteSettingsStore = create(
         return logoUrl;
       },
       getFooterLogoUrl: () => {
-        const settings = get().settings;
+        const settings = get().getActiveSettings();
         const footerLogoUrl = settings.footer.logoUrl;
         if (!footerLogoUrl) return footerLogoUrl;
         // Add cache-busting parameter for relative URLs (public folder assets)
@@ -133,12 +208,12 @@ export const useSiteSettingsStore = create(
         }
         return footerLogoUrl;
       },
-      getFooterDescription: () => get().settings.footer.description,
-      getFooterFeatures: () => get().settings.footer.features,
-      getFooterSupport: () => get().settings.footer.support,
-      getFooterCopyright: () => get().settings.footer.copyright,
-      getRecommendedFeedsTitle: () => get().settings.recommendedFeeds.title,
-      getRecommendedFeedsDescription: () => get().settings.recommendedFeeds.description,
+      getFooterDescription: () => get().getActiveSettings().footer.description,
+      getFooterFeatures: () => get().getActiveSettings().footer.features,
+      getFooterSupport: () => get().getActiveSettings().footer.support,
+      getFooterCopyright: () => get().getActiveSettings().footer.copyright,
+      getRecommendedFeedsTitle: () => get().getActiveSettings().recommendedFeeds.title,
+      getRecommendedFeedsDescription: () => get().getActiveSettings().recommendedFeeds.description,
 
       // Clear error
       clearError: () => set({ error: null })
