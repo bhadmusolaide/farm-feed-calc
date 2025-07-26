@@ -74,6 +74,14 @@ export default function Header() {
                 About
               </button>
               <a
+                href="/breed-comparison"
+                className="btn-ghost btn-sm interactive-scale glow-on-hover"
+                title="Breed Comparison"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Breed Comparison
+              </a>
+              <a
                 href="/disclaimer"
                 className="btn-ghost btn-sm interactive-scale glow-on-hover"
                 title="Disclaimer"
@@ -121,6 +129,14 @@ export default function Header() {
                   <Info className="w-4 h-4 mr-3" />
                   About This App
                 </button>
+                <a
+                  href="/breed-comparison"
+                  className="w-full btn-ghost justify-start interactive-scale"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  <FileText className="w-4 h-4 mr-3" />
+                  Breed Comparison
+                </a>
                 <a
                   href="/disclaimer"
                   className="w-full btn-ghost justify-start interactive-scale"

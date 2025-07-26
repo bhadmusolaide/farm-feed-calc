@@ -34,7 +34,7 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: 'Poultry Feed Calculator - Omzo Farmz',
+  title: 'FeedMate - Omzo Farmz',
   description: 'Calculate optimal feed requirements for broilers and layers. Designed for Nigerian and African farmers with local feed brands and best practices.',
   keywords: 'poultry, feed calculator, broiler, layer, Nigeria, farming, chicken feed, agriculture',
   authors: [{ name: 'Alancash for Omzo Farmz' }],
