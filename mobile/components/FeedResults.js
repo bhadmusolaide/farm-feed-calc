@@ -7,6 +7,7 @@ import * as Sharing from 'expo-sharing';
 import { useFeedStore } from '../lib/store';
 import { useToast } from './Toast';
 import { formatUserFriendlyError, logError } from '../../shared/utils/errorHandling';
+import { calculateFeedCost } from '../../shared/utils/feedCalculator';
 import NotificationButton from './NotificationButton';
 
 export default function FeedResults() {
