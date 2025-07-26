@@ -115,8 +115,8 @@ export const useFeedStore = create(
             rearingStyle: state.rearingStyle,
             targetWeight: state.targetWeight
           });
-          alert('Error calculating feed requirements. Please check your inputs and try again.');
           set({ isCalculating: false });
+          throw error; // Re-throw error to be handled by component
         }
       },
       
