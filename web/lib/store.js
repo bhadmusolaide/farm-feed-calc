@@ -290,12 +290,17 @@ export const useSavedResultsStore = create(
       savedResults: [],
       
       // Save current calculation
-      saveResult: (resultData, name) => {
+      saveResult: (resultData, name, autoProgression = false) => {
         const savedResults = get().savedResults;
         const newResult = {
           id: Date.now().toString(),
           name: name || `Calculation ${savedResults.length + 1}`,
           savedAt: new Date().toISOString(),
+          autoProgression,
+          startDate: autoProgression ? new Date().toISOString().split('T')[0] : null,
+          currentQuantity: resultData.quantity,
+          mortalityLog: [],
+          lastCalculated: new Date().toISOString().split('T')[0],
           ...resultData
         };
         
@@ -324,7 +329,85 @@ export const useSavedResultsStore = create(
       },
       
       // Clear all saved results
-      clearAllResults: () => set({ savedResults: [] })
+      clearAllResults: () => set({ savedResults: [] }),
+      
+      // Update auto-progression setting
+      updateAutoProgression: (resultId, enabled) => {
+        const savedResults = get().savedResults.map(result => 
+          result.id === resultId ? { 
+            ...result, 
+            autoProgression: enabled,
+            startDate: enabled ? (result.startDate || new Date().toISOString().split('T')[0]) : null
+          } : result
+        );
+        set({ savedResults });
+      },
+      
+      // Update mortality for a calculation
+      updateMortality: (resultId, deaths, reason = 'unspecified') => {
+        const savedResults = get().savedResults.map(result => {
+          if (result.id === resultId) {
+            const newMortalityEntry = {
+              date: new Date().toISOString().split('T')[0],
+              deaths,
+              reason,
+              dayOfCycle: result.ageInDays + Math.floor((new Date() - new Date(result.startDate)) / (1000 * 60 * 60 * 24))
+            };
+            
+            return {
+              ...result,
+              currentQuantity: Math.max(0, result.currentQuantity - deaths),
+              mortalityLog: [...(result.mortalityLog || []), newMortalityEntry],
+              lastCalculated: new Date().toISOString().split('T')[0]
+            };
+          }
+          return result;
+        });
+        set({ savedResults });
+      },
+      
+      // Get auto-progression calculations that need daily updates
+      getAutoProgressionCalculations: () => {
+        return get().savedResults.filter(result => 
+          result.autoProgression && 
+          result.startDate
+        );
+      },
+      
+      // Calculate next day feed requirements for auto-progression
+      calculateNextDay: (resultId) => {
+        const result = get().savedResults.find(r => r.id === resultId);
+        if (!result || !result.autoProgression) return null;
+        
+        const daysSinceStart = Math.floor((new Date() - new Date(result.startDate)) / (1000 * 60 * 60 * 24));
+        const currentAge = result.ageInDays + daysSinceStart;
+        
+        try {
+          // Calculate feed requirements for current age and quantity
+          const feedResults = calculateFeed({
+            birdType: result.birdType,
+            breed: result.breed,
+            ageInDays: currentAge,
+            quantity: result.currentQuantity,
+            rearingStyle: result.rearingStyle,
+            targetWeight: result.targetWeight
+          });
+          
+          return {
+            ...feedResults,
+            ageInDays: currentAge,
+            quantity: result.currentQuantity,
+            calculatedFor: new Date().toISOString().split('T')[0],
+            totalFeedKg: feedResults.total.grams / 1000, // Convert grams to kg
+            feedPerBirdGrams: feedResults.perBird.grams,
+            feedType: result.feedType || 'Commercial',
+            protein: result.protein || 'Standard'
+          };
+        } catch (error) {
+          logError(error, 'Auto-progression calculation failed', { resultId, currentAge });
+          return null;
+        }
+      }
     }),
     {
       name: 'saved-results-storage'

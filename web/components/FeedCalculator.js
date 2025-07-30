@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useFeedStore, getAvailableBreeds, getTargetWeightOptions, getRearingStyleOptions } from '../lib/store';
 import { getBreedsWithImages } from '../lib/breedImages';
-import { Calculator, Clock, Users, Target, Zap } from 'lucide-react';
+import { Calculator, Clock, Users, Target, Zap, RotateCcw, Calendar } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useToast } from './Toast';
 import { LoadingButton } from './LoadingState';
 import { validateFormData, formatErrorForUser } from '../../shared/utils/errorHandling';
+import ConfirmationModal from './ConfirmationModal';
 
 export default function FeedCalculator() {
   const {
@@ -25,12 +26,14 @@ export default function FeedCalculator() {
     setRearingStyle,
     setTargetWeight,
     calculateFeedRequirements,
+    resetForm,
   } = useFeedStore();
 
   const [ageInput, setAgeInput] = useState('days');
   const [ageWeeks, setAgeWeeks] = useState(Math.ceil(ageInDays / 7));
   const [hoveredBreed, setHoveredBreed] = useState(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const availableBreeds = getAvailableBreeds(birdType);
   const breedsWithImages = getBreedsWithImages(birdType);
@@ -79,6 +82,27 @@ export default function FeedCalculator() {
       removeToast(loadingToastId);
       toast.success('Feed requirements calculated successfully!');
       
+      // Auto-scroll to results section
+      setTimeout(() => {
+        // First, switch to results tab if not already there
+        const { activeTab, setActiveTab } = useFeedStore.getState();
+        if (activeTab !== 'results') {
+          setActiveTab('results');
+        }
+        
+        // Wait a bit for tab switch to complete, then scroll to results
+        setTimeout(() => {
+          const resultsElement = document.getElementById('feed-results');
+          
+          if (resultsElement) {
+            resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            // Fallback: scroll to top if results element not found
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }, 200);
+      }, 100);
+      
     } catch (error) {
       const friendlyError = formatErrorForUser(error);
       toast.error(friendlyError.message, {
@@ -89,6 +113,16 @@ export default function FeedCalculator() {
        // Loading state is managed by the store
      }
    };
+
+  const handleResetClick = () => {
+    setShowResetConfirm(true);
+  };
+
+  const confirmReset = () => {
+    resetForm();
+    setAgeInput('days');
+    showToast('Calculator reset successfully!', 'success');
+  };
 
   const handleMouseEnter = (breedName, event) => {
     setHoveredBreed(breedName);
@@ -151,6 +185,12 @@ export default function FeedCalculator() {
                   <div className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
                     {type === 'broiler' ? 'Meat production' : 'Egg production'}
                   </div>
+                  {birdType === type && (
+                    <div className="flex items-center space-x-1 mt-2 text-xs text-primary-600 dark:text-primary-400">
+                      <Calendar className="w-3 h-3" />
+                      <span>Track daily progress</span>
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -352,25 +392,44 @@ export default function FeedCalculator() {
             </div>
           )}
 
-          {/* Calculate Button */}
-          <div className="pt-4">
-            <LoadingButton
-              onClick={handleCalculate}
-              loading={isCalculating}
-              loadingText="Calculating..."
-              disabled={!isFormValid()}
-              className={clsx(
-                'w-full btn-lg font-semibold transition-all duration-200',
-                {
-                  'btn-primary': isFormValid() && !isCalculating,
-                  'bg-neutral-300 text-neutral-500 cursor-not-allowed': !isFormValid() || isCalculating,
-                }
+          {/* Action Buttons */}
+            <div className="pt-4 space-y-3">
+              <div className="flex gap-3">
+                <LoadingButton
+                  onClick={handleCalculate}
+                  loading={isCalculating}
+                  loadingText="Calculating..."
+                  disabled={!isFormValid()}
+                  className={clsx(
+                    'flex-1 btn-lg font-semibold transition-all duration-200',
+                    {
+                      'btn-primary': isFormValid() && !isCalculating,
+                      'bg-neutral-300 text-neutral-500 cursor-not-allowed': !isFormValid() || isCalculating,
+                    }
+                  )}
+                >
+                  <Zap className="w-5 h-5 mr-2" />
+                  Calculate
+                </LoadingButton>
+                
+                <button
+                  type="button"
+                  onClick={handleResetClick}
+                  className="btn-lg btn-secondary font-semibold transition-all duration-200 flex items-center justify-center px-6"
+                >
+                  <RotateCcw className="w-5 h-5 mr-2" />
+                  Reset
+                </button>
+              </div>
+              
+              {/* Subtle Auto-Progression Hint */}
+              {isFormValid() && (
+                <div className="flex items-center justify-center space-x-2 text-xs text-neutral-500 dark:text-neutral-400 animate-fade-in">
+                  <Calendar className="w-3 h-3" />
+                  <span>💡 Tip: Save results to track daily progress automatically</span>
+                </div>
               )}
-            >
-              <Zap className="w-5 h-5 mr-3" />
-              Calculate Feed Requirements
-            </LoadingButton>
-          </div>
+            </div>
         </form>
 
         {/* Quick Tips */}
@@ -381,6 +440,11 @@ export default function FeedCalculator() {
             <li>• Always provide fresh, clean water</li>
             <li>• Monitor birds daily for signs of illness</li>
             <li>• Adjust quantities based on actual consumption</li>
+            <li className="flex items-center space-x-1">
+              <span>•</span>
+              <Calendar className="w-3 h-3 opacity-70" />
+              <span>Save calculations to get daily feed updates on your dashboard</span>
+            </li>
           </ul>
         </div>
       </div>
@@ -412,6 +476,18 @@ export default function FeedCalculator() {
           </div>
         </div>
       )}
+
+      {/* Reset Confirmation Modal */}
+       <ConfirmationModal
+         isOpen={showResetConfirm}
+         onClose={() => setShowResetConfirm(false)}
+         onConfirm={confirmReset}
+         title="Reset Calculator"
+         message="Are you sure you want to reset all fields? This action cannot be undone."
+         confirmText="Reset"
+         cancelText="Cancel"
+         variant="warning"
+       />
     </div>
   );
 }

@@ -8,6 +8,8 @@ import FeedResults from '../components/FeedResults';
 import RecommendedFeeds from '../components/RecommendedFeeds';
 import KnowledgeSnippets from '../components/KnowledgeSnippets';
 import SavedResults from '../components/SavedResults';
+import DailyDashboard from '../components/DailyDashboard';
+import AutoProgressionNotifications from '../components/AutoProgressionNotifications';
 import Header from '../components/Header';
 import Navigation from '../components/Navigation';
 import OfflineIndicator from '../components/OfflineIndicator';
@@ -135,6 +137,12 @@ export default function HomePage() {
             Optimize your poultry feeding with precision calculations tailored for Nigerian farmers
           </p>
         </div>
+        
+        {/* Auto-Progression Notifications */}
+      <AutoProgressionNotifications />
+      
+      {/* Daily Dashboard */}
+      <DailyDashboard />
         
         {/* Mobile-first tab navigation */}
         <div className="mb-8">

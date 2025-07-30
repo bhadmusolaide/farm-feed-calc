@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { Menu, X, Info, FileText } from 'lucide-react';
-import { useFeedStore } from '../lib/store';
 import { useSiteSettingsStore } from '../lib/siteSettingsStore';
 import ThemeToggle from './ThemeToggle';
+import UserProfile from './UserProfile';
 
 const ChickenIcon = () => (
   <svg
@@ -20,14 +20,7 @@ const ChickenIcon = () => (
 export default function Header() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const { resetForm } = useFeedStore();
   const { getSiteTitle, getSiteDescription } = useSiteSettingsStore();
-
-  const handleReset = () => {
-    if (confirm('Are you sure you want to reset all inputs? This will clear your current calculation.')) {
-      resetForm();
-    }
-  };
 
   return (
     <>
@@ -89,17 +82,12 @@ export default function Header() {
                 <FileText className="w-4 h-4 mr-2" />
                 Disclaimer
               </a>
-              <button
-                onClick={handleReset}
-                className="btn-primary btn-sm interactive-scale"
-                title="Reset Calculator"
-              >
-                Reset
-              </button>
+              <UserProfile />
             </div>
 
             {/* Mobile Menu Button */}
             <div className="md:hidden flex items-center space-x-2">
+              <UserProfile />
               <ThemeToggle />
               <button
                 onClick={() => setShowMobileMenu(!showMobileMenu)}
@@ -145,16 +133,6 @@ export default function Header() {
                   <FileText className="w-4 h-4 mr-3" />
                   Disclaimer
                 </a>
-                <button
-                  onClick={() => {
-                    handleReset();
-                    setShowMobileMenu(false);
-                  }}
-                  className="w-full btn-primary justify-start interactive-scale"
-                >
-                  <X className="w-4 h-4 mr-3" />
-                  Reset Calculator
-                </button>
               </div>
             </div>
           )}

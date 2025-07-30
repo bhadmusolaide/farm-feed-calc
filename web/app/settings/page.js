@@ -10,6 +10,7 @@ import { useToast } from '../../components/Toast';
 import FeedForm from '../../components/FeedForm';
 import LocalMixForm from '../../components/LocalMixForm';
 import LoginForm from '../../components/LoginForm';
+import WaitlistAdmin from '../../components/WaitlistAdmin';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -243,95 +244,123 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.back()}
-                className="p-2 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-                Settings
-              </h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              {activeTab === 'site' && (
-                <>
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800">
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Compact Header */}
+          <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 mb-6">
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => router.back()}
+                  className="p-2 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div>
+                  <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">
+                    Settings
+                  </h1>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    Manage your application configuration
+                  </p>
+                </div>
+              </div>
+              
+              {/* Context-aware Action Bar */}
+              <div className="flex items-center space-x-2">
+                {activeTab === 'site' && (
+                  <>
+                    <button
+                      onClick={() => setShowPreview(!showPreview)}
+                      className="flex items-center space-x-2 px-3 py-2 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors text-sm"
+                    >
+                      {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      <span className="hidden sm:inline">{showPreview ? 'Hide Preview' : 'Preview'}</span>
+                    </button>
+                    
+                    <button
+                      onClick={handleReset}
+                      className="flex items-center space-x-2 px-3 py-2 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors text-sm"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span className="hidden sm:inline">Reset</span>
+                    </button>
+                    
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>{isSaving ? 'Saving...' : 'Save'}</span>
+                    </button>
+                  </>
+                )}
+                
+                {activeTab === 'feeds' && (
                   <button
-                    onClick={() => setShowPreview(!showPreview)}
-                    className="flex items-center space-x-2 px-4 py-2 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
-                  >
-                    {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    <span>{showPreview ? 'Hide Preview' : 'Show Preview'}</span>
-                  </button>
-                  
-                  <button
-                    onClick={handleReset}
-                    className="flex items-center space-x-2 px-4 py-2 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                    onClick={handleResetFeeds}
+                    className="flex items-center space-x-2 px-3 py-2 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors text-sm"
                   >
                     <RotateCcw className="w-4 h-4" />
-                    <span>Reset</span>
+                    <span className="hidden sm:inline">Reset Feeds</span>
                   </button>
-                  
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="flex items-center space-x-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg transition-colors"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
-                  </button>
-                </>
-              )}
-              
-              {activeTab === 'feeds' && (
+                )}
+                
+                <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-600"></div>
+                
                 <button
-                  onClick={handleResetFeeds}
-                  className="flex items-center space-x-2 px-4 py-2 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                  onClick={handleLogout}
+                  className="flex items-center space-x-2 px-3 py-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors text-sm"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Reset Feeds</span>
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Logout</span>
                 </button>
-              )}
-              
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Logout</span>
-              </button>
+              </div>
             </div>
-          </div>
-          
-          {/* Tab Navigation */}
-          <div className="mb-8">
-            <div className="border-b border-neutral-200 dark:border-neutral-700">
-              <nav className="-mb-px flex space-x-8">
+            
+            {/* Enhanced Tab Navigation */}
+            <div className="border-t border-neutral-200 dark:border-neutral-700">
+              <nav className="flex">
                 <button
                   onClick={() => setActiveTab('site')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  className={`flex-1 py-3 px-4 text-center font-medium text-sm transition-all duration-200 ${
                     activeTab === 'site'
-                      ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                      : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300 dark:text-neutral-400 dark:hover:text-neutral-300'
+                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-b-2 border-primary-500'
+                      : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-700/50'
                   }`}
                 >
-                  Site Settings
+                  <div className="flex items-center justify-center space-x-2">
+                    <span>Site Settings</span>
+                    {activeTab === 'site' && <div className="w-1.5 h-1.5 bg-primary-500 rounded-full"></div>}
+                  </div>
                 </button>
                 <button
                   onClick={() => setActiveTab('feeds')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  className={`flex-1 py-3 px-4 text-center font-medium text-sm transition-all duration-200 ${
                     activeTab === 'feeds'
-                      ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                      : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300 dark:text-neutral-400 dark:hover:text-neutral-300'
+                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-b-2 border-primary-500'
+                      : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-700/50'
                   }`}
                 >
-                  Feed Management
+                  <div className="flex items-center justify-center space-x-2">
+                    <span>Feed Management</span>
+                    {activeTab === 'feeds' && <div className="w-1.5 h-1.5 bg-primary-500 rounded-full"></div>}
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className={`flex-1 py-3 px-4 text-center font-medium text-sm transition-all duration-200 ${
+                    activeTab === 'admin'
+                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-b-2 border-primary-500'
+                      : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-700/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <span>Waitlist Admin</span>
+                    {activeTab === 'admin' && <div className="w-1.5 h-1.5 bg-primary-500 rounded-full"></div>}
+                  </div>
                 </button>
               </nav>
             </div>
@@ -339,70 +368,46 @@ export default function SettingsPage() {
 
           {/* Site Settings Tab */}
           {activeTab === 'site' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                {/* Settings Status */}
-                <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
-                  <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
-                    Settings Status
-                  </h2>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-neutral-600 dark:text-neutral-400">Settings Source:</span>
-                      <div className="flex items-center space-x-2">
-                        {isLoadingGlobal ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
-                        ) : (
-                          <>
-                            <div className={`w-2 h-2 rounded-full ${
-                              globalSettings 
-                                ? 'bg-green-500' 
-                                : 'bg-yellow-500'
-                            }`}></div>
-                            <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                              {globalSettings 
-                                ? 'Global (Firebase)' 
-                                : 'Loading...'}
-                            </span>
-                          </>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="xl:col-span-2 space-y-6">
+                {/* Settings Status - Compact */}
+                <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        globalSettings ? 'bg-green-500' : isLoadingGlobal ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}></div>
+                      <div>
+                        <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                          {globalSettings ? 'Connected to Firebase' : isLoadingGlobal ? 'Connecting...' : 'Connection Failed'}
+                        </h3>
+                        {user && (
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                            {user.email}
+                          </p>
                         )}
                       </div>
                     </div>
-                    
-                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                      {globalSettings ? (
-                        <>✅ Settings are synchronized across all devices and users. Changes made here will be visible to everyone.</>  
-                      ) : (
-                        <>⏳ Loading global settings... {error && <><br/><strong>Issue:</strong> {error}</>}</>  
-                      )}
-                    </div>
-                    
-                    {user && (
-                      <div className="text-xs text-blue-600 dark:text-blue-400">
-                        👤 Logged in as: {user.email}
-                      </div>
-                    )}
-                    
                     {!globalSettings && (
                       <button
                         onClick={loadGlobalSettings}
                         disabled={isLoadingGlobal}
-                        className="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 underline"
+                        className="text-xs px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
                       >
-                        {isLoadingGlobal ? 'Loading...' : 'Retry loading global settings'}
+                        {isLoadingGlobal ? 'Loading...' : 'Retry'}
                       </button>
                     )}
                   </div>
                 </div>
                 {/* Header Settings */}
-                <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
-                  <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+                <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-5">
+                  <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
+                    <div className="w-2 h-2 bg-primary-500 rounded-full mr-3"></div>
                     Header Settings
                   </h2>
                   
-                  <div className="space-y-4">
-                    <div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                         Site Title
                       </label>
@@ -410,53 +415,56 @@ export default function SettingsPage() {
                         type="text"
                         value={formData.siteTitle}
                         onChange={(e) => handleInputChange('siteTitle', e.target.value)}
-                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-neutral-700 dark:text-neutral-100"
+                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 transition-colors"
                         placeholder="Enter site title"
                       />
                     </div>
                     
-                    <div>
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                         Site Description
                       </label>
-                      <input
-                        type="text"
+                      <textarea
                         value={formData.siteDescription}
                         onChange={(e) => handleInputChange('siteDescription', e.target.value)}
-                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-neutral-700 dark:text-neutral-100"
+                        rows={3}
+                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 transition-colors resize-none"
                         placeholder="Enter site description"
                       />
                     </div>
                     
-                    <div>
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                         Logo URL (optional)
                       </label>
                       <input
-                        type="text"
+                        type="url"
                         value={formData.logoUrl}
                         onChange={(e) => handleInputChange('logoUrl', e.target.value)}
-                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-neutral-700 dark:text-neutral-100"
+                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 transition-colors"
                         placeholder="/omzo_farmz_logo.png or https://example.com/logo.png"
                       />
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                        Use relative paths (e.g., /omzo_farmz_logo.png) or full URLs. Leave empty to use the default chicken icon.
-                      </p>
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
-                        ⚠️ Note: Logo is currently hardcoded to /omzo_farmz_logo.png for production consistency.
-                      </p>
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          Use relative paths (e.g., /omzo_farmz_logo.png) or full URLs. Leave empty to use the default chicken icon.
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                          ⚠️ Note: Logo is currently hardcoded to /omzo_farmz_logo.png for production consistency.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Footer Settings */}
-                <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
-                  <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+                <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-5">
+                  <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
+                    <div className="w-2 h-2 bg-primary-500 rounded-full mr-3"></div>
                     Footer Settings
                   </h2>
                   
-                  <div className="space-y-4">
-                    <div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                         Footer Logo URL (optional)
                       </label>
@@ -464,7 +472,7 @@ export default function SettingsPage() {
                         type="text"
                         value={formData.footerLogoUrl}
                         onChange={(e) => handleInputChange('footerLogoUrl', e.target.value)}
-                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-neutral-700 dark:text-neutral-100"
+                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 transition-colors"
                         placeholder="/omzo_farmz_logo.png or https://example.com/logo.png"
                       />
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
@@ -475,7 +483,7 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     
-                    <div>
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                         Footer Description
                       </label>
@@ -483,7 +491,7 @@ export default function SettingsPage() {
                         value={formData.footerDescription}
                         onChange={(e) => handleInputChange('footerDescription', e.target.value)}
                         rows={3}
-                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-neutral-700 dark:text-neutral-100"
+                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 transition-colors resize-none"
                         placeholder="Enter footer description"
                       />
                     </div>
@@ -597,92 +605,87 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* Preview */}
+              {/* Preview Sidebar */}
               {showPreview && (
-                <div className="space-y-6">
-                  <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
-                    <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
-                      Preview
-                    </h2>
-                    
-                    {/* Header Preview */}
-                    <div className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-4 mb-4">
-                      <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Header</h3>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center">
-                          {formData.logoUrl ? (
-                            <img src={formData.logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
-                          ) : (
-                            <span className="text-white text-lg">🐔</span>
-                          )}
-                        </div>
-                        <div>
-                          <h1 className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
-                            {formData.siteTitle}
-                          </h1>
-                          <p className="text-xs text-neutral-600 dark:text-neutral-400">
-                            {formData.siteDescription}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Footer Preview */}
-                    <div className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-4 mb-4">
-                      <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Footer</h3>
-                      <div className="text-xs space-y-2">
-                        <div className="flex items-center space-x-3 mb-2">
-                          {formData.footerLogoUrl && (
-                            <img 
-                              src={formData.footerLogoUrl} 
-                              alt="Footer Logo" 
-                              className="w-16 h-16 object-contain rounded-lg"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                              }}
-                            />
-                          )}
-                          <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                            {formData.siteTitle}
-                          </h4>
-                        </div>
-                        <p className="text-neutral-600 dark:text-neutral-300">
-                          {formData.footerDescription}
-                        </p>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <h4 className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">Features</h4>
-                            <ul className="space-y-1 text-neutral-600 dark:text-neutral-300">
-                              {formData.footerFeatures.map((feature, index) => (
-                                <li key={index}>• {feature}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">Support</h4>
-                            <ul className="space-y-1 text-neutral-600 dark:text-neutral-300">
-                              {formData.footerSupport.map((support, index) => (
-                                <li key={index}>• {support}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                        <p className="text-neutral-500 dark:text-neutral-400 pt-2 border-t border-neutral-200 dark:border-neutral-600">
-                          {formData.footerCopyright}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Recommended Feeds Preview */}
-                    <div className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-4">
-                      <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Recommended Feeds Section</h3>
-                      <div className="text-center">
-                        <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">
-                          {formData.recommendedFeedsTitle}
+                <div className="xl:col-span-1">
+                  <div className="sticky top-6">
+                    <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 flex items-center">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                          Live Preview
                         </h2>
-                        <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                          {formData.recommendedFeedsDescription}
-                        </p>
+                        <button
+                          onClick={() => setShowPreview(false)}
+                          className="p-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-4 text-xs">
+                        {/* Header Preview */}
+                        <div className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-3">
+                          <h3 className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">Header</h3>
+                          <div className="flex items-center space-x-2">
+                            {formData.logoUrl && (
+                              <img 
+                                src={formData.logoUrl} 
+                                alt="Logo" 
+                                className="w-6 h-6 object-contain rounded"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <div>
+                              <h1 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 truncate">
+                                {formData.siteTitle || 'Site Title'}
+                              </h1>
+                              <p className="text-xs text-neutral-600 dark:text-neutral-300 truncate">
+                                {formData.siteDescription || 'Site description...'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Footer Preview */}
+                        <div className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-3">
+                          <h3 className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">Footer</h3>
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              {formData.footerLogoUrl && (
+                                <img 
+                                  src={formData.footerLogoUrl} 
+                                  alt="Footer Logo" 
+                                  className="w-8 h-8 object-contain rounded"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              )}
+                              <h4 className="text-xs font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                                {formData.siteTitle || 'Site Title'}
+                              </h4>
+                            </div>
+                            <p className="text-xs text-neutral-600 dark:text-neutral-300 line-clamp-2">
+                              {formData.footerDescription || 'Footer description...'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Recommended Feeds Preview */}
+                        <div className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-3">
+                          <h3 className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">Recommended Feeds</h3>
+                          <div className="text-center">
+                            <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 mb-1 truncate">
+                              {formData.recommendedFeedsTitle || 'Recommended Feeds'}
+                            </h2>
+                            <p className="text-xs text-neutral-600 dark:text-neutral-300 line-clamp-2">
+                              {formData.recommendedFeedsDescription || 'Description...'}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -694,23 +697,54 @@ export default function SettingsPage() {
           {/* Feed Management Tab */}
           {activeTab === 'feeds' && (
             <div className="space-y-6">
-              {/* Commercial Feeds */}
-              <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                    Commercial Feeds
-                  </h2>
-                  <button
-                    onClick={() => {
-                      setEditingFeed(null);
-                      setShowFeedForm(true);
-                    }}
-                    className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Feed</span>
-                  </button>
+              {/* Feed Management Header */}
+              <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 flex items-center">
+                      <div className="w-2 h-2 bg-primary-500 rounded-full mr-3"></div>
+                      Feed Management
+                    </h2>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                      Manage commercial feeds and local mixes
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => {
+                        setEditingLocalMix(null);
+                        setShowLocalMixForm(true);
+                      }}
+                      className="flex items-center space-x-2 px-4 py-2 bg-neutral-600 hover:bg-neutral-700 text-white rounded-lg transition-colors text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="hidden sm:inline">Add Local Mix</span>
+                      <span className="sm:hidden">Mix</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingFeed(null);
+                        setShowFeedForm(true);
+                      }}
+                      className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="hidden sm:inline">Add Commercial Feed</span>
+                      <span className="sm:hidden">Feed</span>
+                    </button>
+                  </div>
                 </div>
+              </div>
+
+              {/* Commercial Feeds */}
+              <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-5">
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                  Commercial Feeds
+                  <span className="ml-2 text-sm text-neutral-500 dark:text-neutral-400">
+                    ({Object.values(feeds).reduce((total, categoryFeeds) => total + categoryFeeds.length, 0)} total)
+                  </span>
+                </h3>
                 
                 <div className="space-y-4">
                   {Object.entries(feeds).map(([category, categoryFeeds]) => (
@@ -720,23 +754,30 @@ export default function SettingsPage() {
                       </h3>
                       <div className="grid gap-3">
                         {categoryFeeds.map((feed) => (
-                          <div key={feed.id} className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <h4 className="font-medium text-neutral-900 dark:text-neutral-100">{feed.name}</h4>
-                                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                                  {feed.brand} • Protein: {feed.protein}% • Calcium: {feed.calcium}%
-                                </p>
-                                <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
+                          <div key={feed.id} className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-4 hover:border-primary-300 dark:hover:border-primary-600 transition-colors">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <h4 className="font-medium text-neutral-900 dark:text-neutral-100 truncate">{feed.name}</h4>
+                                  <span className="text-xs px-2 py-1 bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 rounded-full capitalize">
+                                    {category}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-neutral-600 dark:text-neutral-400 mb-2">
+                                  <span className="truncate">{feed.brand}</span>
+                                  <span>Protein: {feed.protein}%</span>
+                                  <span>Calcium: {feed.calcium}%</span>
+                                </div>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-500 line-clamp-2 mb-2">
                                   {feed.description}
                                 </p>
                                 {feed.estimatedPrice && (
-                                  <p className="text-xs text-primary-600 dark:text-primary-400 mt-1">
+                                  <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">
                                     From {feed.currency} {Object.values(feed.estimatedPrice)[0]}
                                   </p>
                                 )}
                               </div>
-                              <div className="flex items-center space-x-2 ml-4">
+                              <div className="flex items-center space-x-1 ml-4 flex-shrink-0">
                                 <button
                                   onClick={() => {
                                     setEditingFeed(feed);
@@ -763,37 +804,65 @@ export default function SettingsPage() {
               </div>
 
               {/* Local Mixes */}
-              <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
-                <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+              <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-5">
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
                   Local Feed Mixes
-                </h2>
+                  <span className="ml-2 text-sm text-neutral-500 dark:text-neutral-400">
+                    ({Object.keys(localMixes).length} total)
+                  </span>
+                </h3>
                 
                 <div className="space-y-4">
                   {Object.entries(localMixes).map(([category, mix]) => (
-                    <div key={category} className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-medium text-neutral-900 dark:text-neutral-100 capitalize">{category} Mix</h3>
-                          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                            {mix.name} • Protein: {mix.protein}%
+                    <div key={category} className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-4 hover:border-green-300 dark:hover:border-green-600 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h4 className="font-medium text-neutral-900 dark:text-neutral-100 capitalize truncate">{category} Mix</h4>
+                            <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full">
+                              Local
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-neutral-600 dark:text-neutral-400 mb-2">
+                            <span className="truncate">{mix.name}</span>
+                            <span>Protein: {mix.protein}%</span>
+                          </div>
+                          <p className="text-xs text-neutral-500 dark:text-neutral-500 line-clamp-2 mb-2">
+                            {mix.description || 'Local feed mix'}
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
+                          <p className="text-xs text-green-600 dark:text-green-400 font-medium">
                             {mix.ingredients?.length || 0} ingredients
                           </p>
                         </div>
-                        <button
-                          onClick={() => {
-                            setEditingLocalMix({ category, ...mix });
-                            setShowLocalMixForm(true);
-                          }}
-                          className="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center space-x-1 ml-4 flex-shrink-0">
+                          <button
+                            onClick={() => {
+                              setEditingLocalMix({ category, ...mix });
+                              setShowLocalMixForm(true);
+                            }}
+                            className="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Waitlist Admin Tab */}
+          {activeTab === 'admin' && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-5">
+                <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                  Waitlist Management
+                </h2>
+                <WaitlistAdmin />
               </div>
             </div>
           )}

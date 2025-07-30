@@ -1,7 +1,7 @@
 'use client';
 
 import { useFeedStore, useSavedResultsStore } from '../lib/store';
-import { Package, Clock, Lightbulb, Calculator, Copy, Check, Save, Thermometer } from 'lucide-react';
+import { Package, Clock, Lightbulb, Calculator, Copy, Check, Save, Thermometer, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import { clsx } from 'clsx';
 import { useToast } from './Toast';
@@ -16,6 +16,9 @@ export default function FeedResults() {
   const { toast } = useToast();
   const [copiedSection, setCopiedSection] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [autoProgression, setAutoProgression] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [calculationName, setCalculationName] = useState('');
 
   // Calculate basic feed efficiency for display (simplified, practical approach)
   const feedEfficiencyRating = feedResults.rearingStyle === 'commercial' ? 'Good' : 
@@ -81,13 +84,27 @@ export default function FeedResults() {
     };
     
     try {
-      const savedId = saveResult(resultData);
+      const savedId = saveResult(resultData, calculationName || undefined, autoProgression);
       
       // Show success feedback
       setCopiedSection('saved');
       setTimeout(() => setCopiedSection(null), 2000);
       
-      toast.success('Results saved successfully!');
+      if (autoProgression) {
+        toast.success('Results saved with auto-progression enabled!');
+      } else {
+        toast.success('Results saved successfully!');
+      }
+      
+      // Reset dialog state
+      setShowSaveDialog(false);
+      setCalculationName('');
+      setAutoProgression(false);
+      
+      // Scroll to top to show notifications (with small delay to ensure DOM updates)
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
       
     } catch (error) {
       logError(error, 'Failed to save results', { resultData });
@@ -95,6 +112,11 @@ export default function FeedResults() {
     } finally {
       setIsSaving(false);
     }
+  };
+  
+  const openSaveDialog = () => {
+    setShowSaveDialog(true);
+    setCalculationName(`${birdType} - ${breed} (Day ${ageInDays})`);
   };
 
   const formatResultsForCopy = () => {
@@ -128,7 +150,7 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-mobile">
+    <div id="feed-results" className="max-w-4xl mx-auto space-mobile">
       {/* Results Header */}
       <div className="text-center mb-8">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary-100 rounded-2xl mb-4">
@@ -507,7 +529,7 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
         </button>
         
         <button
-          onClick={handleSaveResult}
+          onClick={openSaveDialog}
           disabled={isSaving}
           className="flex-1 btn-primary"
         >
@@ -536,10 +558,92 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
           🖨️ Print Results
         </button>
       </div>
-
-
-
-
+      
+      {/* Save Dialog */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-neutral-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4">
+              Save Calculation
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                  Calculation Name
+                </label>
+                <input
+                  type="text"
+                  value={calculationName}
+                  onChange={(e) => setCalculationName(e.target.value)}
+                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter a name for this calculation"
+                />
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <input
+                  type="checkbox"
+                  id="autoProgression"
+                  checked={autoProgression}
+                  onChange={(e) => setAutoProgression(e.target.checked)}
+                  className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-neutral-300 rounded"
+                />
+                <div>
+                  <label htmlFor="autoProgression" className="text-sm font-medium text-neutral-700 dark:text-neutral-300 cursor-pointer">
+                    📅 Enable Auto-Progression
+                  </label>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                    Automatically calculate tomorrow's feed requirements. You'll see daily updates when you open the app.
+                  </p>
+                </div>
+              </div>
+              
+              {autoProgression && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-xs text-blue-700 dark:text-blue-300">
+                      <p className="font-medium mb-1">Auto-progression will:</p>
+                      <ul className="space-y-1 list-disc list-inside">
+                        <li>Calculate daily feed requirements automatically</li>
+                        <li>Show updates on your dashboard</li>
+                        <li>Allow quick mortality adjustments</li>
+                        <li>Track your flock's progress over time</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowSaveDialog(false);
+                  setCalculationName('');
+                  setAutoProgression(false);
+                }}
+                className="px-4 py-2 text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveResult}
+                disabled={isSaving || !calculationName.trim()}
+                className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg transition-colors duration-200"
+              >
+                {isSaving ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save Calculation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

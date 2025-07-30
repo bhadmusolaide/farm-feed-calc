@@ -3,7 +3,7 @@ const nextConfig = {
   // Production optimizations
   compress: true,
   poweredByHeader: false,
-  generateEtags: true,
+  generateEtags: process.env.NODE_ENV === 'production',
   
   // Image optimization
   images: {
@@ -21,6 +21,8 @@ const nextConfig = {
   
   // Security and performance headers
   async headers() {
+    const isDev = process.env.NODE_ENV === 'development';
+    
     return [
       {
         source: '/(.*)',
@@ -49,6 +51,11 @@ const nextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains; preload',
           },
+          // Disable caching in development
+          ...(isDev ? [{
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate, max-age=0',
+          }] : []),
         ],
       },
       {
@@ -65,7 +72,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: isDev ? 'no-cache, no-store, must-revalidate, max-age=0' : 'public, max-age=31536000, immutable',
           },
         ],
       },
@@ -88,9 +95,9 @@ const nextConfig = {
   // output: 'export',
   // trailingSlash: true,
   
-  // Disable static generation for error pages to avoid build issues
+  // Experimental features
   experimental: {
-    missingSuspenseWithCSRBailout: false,
+    // Add any valid experimental features here if needed
   },
   
   // Skip static generation for error pages
