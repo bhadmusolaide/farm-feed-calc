@@ -1,13 +1,14 @@
 'use client';
 
 import { useFeedStore, useSavedResultsStore } from '../lib/store';
-import { Package, Clock, Lightbulb, Calculator, Copy, Check, Save } from 'lucide-react';
+import { Package, Clock, Lightbulb, Calculator, Copy, Check, Save, Thermometer } from 'lucide-react';
 import { useState } from 'react';
 import { clsx } from 'clsx';
 import { useToast } from './Toast';
 import { LoadingWrapper } from './LoadingState';
 import { formatErrorForUser, logError } from '../../shared/utils/errorHandling';
 import { calculateFeedCost, calculateExpectedWeight, getFCRReference } from '../../shared/utils/feedCalculator';
+import { calculateOptimalTemperature } from '../../shared/utils/temperatureCalculator';
 
 export default function FeedResults() {
   const { feedResults, feedingSchedule, bestPractices, birdType, breed, ageInDays, quantity, rearingStyle, targetWeight } = useFeedStore();
@@ -30,6 +31,13 @@ export default function FeedResults() {
 
   // Get FCR reference data
   const fcrReference = getFCRReference(birdType, ageInDays);
+
+  // Calculate optimal temperature range
+  const optimalTemperature = calculateOptimalTemperature({
+    birdType,
+    breed,
+    ageInDays
+  });
 
   if (!feedResults) {
     return (
@@ -204,6 +212,31 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
                     {feedResults.targetWeight} plan
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Temperature Range */}
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl p-4">
+              <div className="flex items-center mb-2">
+                <Thermometer className="w-4 h-4 mr-2 text-orange-600 dark:text-orange-400" />
+                <div className="font-medium text-orange-900 dark:text-orange-100">
+                  Optimal Temperature
+                </div>
+              </div>
+              <div className="flex items-baseline space-x-2">
+                <span className="text-xl font-bold text-orange-900 dark:text-orange-100">
+                  {optimalTemperature.min}°-{optimalTemperature.max}°C
+                </span>
+                <span className="text-sm text-orange-700 dark:text-orange-300">
+                  ({optimalTemperature.description})
+                </span>
+              </div>
+              <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                {optimalTemperature.stage === 'brooding'
+                  ? `Week ${optimalTemperature.week}: Reduce brooder temp by 3°C weekly`
+                  : optimalTemperature.stage === 'growing'
+                  ? 'Monitor for temperature stress signs'
+                  : 'Maintain consistent environmental conditions'}
               </div>
             </div>
           </div>
