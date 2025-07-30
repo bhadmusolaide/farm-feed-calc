@@ -15,15 +15,12 @@ export default function SettingsPage() {
   const router = useRouter();
   const { isAuthenticated, signOut, user } = useFirebaseAuthStore();
   const { 
-    settings, 
     globalSettings, 
     isLoadingGlobal, 
-    useGlobalSettings, 
     error,
     updateSettings, 
     resetToDefaults, 
-    loadGlobalSettings, 
-    getActiveSettings 
+    loadGlobalSettings 
   } = useSiteSettingsStore();
   const { 
     feeds, 
@@ -72,23 +69,22 @@ export default function SettingsPage() {
   }, [initialize]);
 
   useEffect(() => {
-    const activeSettings = getActiveSettings();
-    if (activeSettings && activeSettings.footer && activeSettings.recommendedFeeds) {
+    if (globalSettings && globalSettings.footer && globalSettings.recommendedFeeds) {
       setFormData({
-        siteTitle: activeSettings.siteTitle || '',
-        siteDescription: activeSettings.siteDescription || '',
-        logoUrl: activeSettings.logoUrl || '',
-        footerLogoUrl: activeSettings.footer.logoUrl || '',
-        footerDescription: activeSettings.footer.description || '',
-        footerFeatures: [...(activeSettings.footer.features || [])],
-        footerSupport: [...(activeSettings.footer.support || [])],
-        footerCopyright: activeSettings.footer.copyright || '',
-        recommendedFeedsTitle: activeSettings.recommendedFeeds.title || '',
-        recommendedFeedsDescription: activeSettings.recommendedFeeds.description || '',
+        siteTitle: globalSettings.siteTitle || '',
+        siteDescription: globalSettings.siteDescription || '',
+        logoUrl: globalSettings.logoUrl || '',
+        footerLogoUrl: globalSettings.footer.logoUrl || '',
+        footerDescription: globalSettings.footer.description || '',
+        footerFeatures: [...(globalSettings.footer.features || [])],
+        footerSupport: [...(globalSettings.footer.support || [])],
+        footerCopyright: globalSettings.footer.copyright || '',
+        recommendedFeedsTitle: globalSettings.recommendedFeeds.title || '',
+        recommendedFeedsDescription: globalSettings.recommendedFeeds.description || '',
       });
       setIsLoading(false);
     }
-  }, [settings, globalSettings, useGlobalSettings, getActiveSettings]);
+  }, [globalSettings]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -147,18 +143,18 @@ export default function SettingsPage() {
 
   const handleReset = () => {
     resetToDefaults();
-    if (settings && settings.footer && settings.recommendedFeeds) {
+    if (globalSettings && globalSettings.footer && globalSettings.recommendedFeeds) {
       setFormData({
-        siteTitle: settings.siteTitle || '',
-        siteDescription: settings.siteDescription || '',
-        logoUrl: settings.logoUrl || '',
-        footerLogoUrl: settings.footer.logoUrl || '',
-        footerDescription: settings.footer.description || '',
-        footerFeatures: [...(settings.footer.features || [])],
-        footerSupport: [...(settings.footer.support || [])],
-        footerCopyright: settings.footer.copyright || '',
-        recommendedFeedsTitle: settings.recommendedFeeds.title || '',
-        recommendedFeedsDescription: settings.recommendedFeeds.description || '',
+        siteTitle: globalSettings.siteTitle || '',
+        siteDescription: globalSettings.siteDescription || '',
+        logoUrl: globalSettings.logoUrl || '',
+        footerLogoUrl: globalSettings.footer.logoUrl || '',
+        footerDescription: globalSettings.footer.description || '',
+        footerFeatures: [...(globalSettings.footer.features || [])],
+        footerSupport: [...(globalSettings.footer.support || [])],
+        footerCopyright: globalSettings.footer.copyright || '',
+        recommendedFeedsTitle: globalSettings.recommendedFeeds.title || '',
+        recommendedFeedsDescription: globalSettings.recommendedFeeds.description || '',
       });
     }
     toast.success('Settings reset to defaults successfully!');
@@ -360,14 +356,14 @@ export default function SettingsPage() {
                         ) : (
                           <>
                             <div className={`w-2 h-2 rounded-full ${
-                              useGlobalSettings && globalSettings 
+                              globalSettings 
                                 ? 'bg-green-500' 
                                 : 'bg-yellow-500'
                             }`}></div>
                             <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                              {useGlobalSettings && globalSettings 
+                              {globalSettings 
                                 ? 'Global (Firebase)' 
-                                : 'Local (Device Only)'}
+                                : 'Loading...'}
                             </span>
                           </>
                         )}
@@ -375,10 +371,10 @@ export default function SettingsPage() {
                     </div>
                     
                     <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                      {useGlobalSettings && globalSettings ? (
+                      {globalSettings ? (
                         <>✅ Settings are synchronized across all devices and users. Changes made here will be visible to everyone.</>  
                       ) : (
-                        <>⚠️ Settings are stored locally on this device only. Changes will not sync to other devices or users. {error && <><br/><strong>Issue:</strong> {error}</>}</>  
+                        <>⏳ Loading global settings... {error && <><br/><strong>Issue:</strong> {error}</>}</>  
                       )}
                     </div>
                     

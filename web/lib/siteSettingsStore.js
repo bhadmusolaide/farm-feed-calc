@@ -37,12 +37,10 @@ export const useSiteSettingsStore = create(
   persist(
     (set, get) => ({
       // State
-      settings: DEFAULT_SETTINGS,
-      globalSettings: null, // Settings from Firebase
+      globalSettings: DEFAULT_SETTINGS, // Always use global settings (fallback to defaults)
       isLoading: false,
       isLoadingGlobal: false,
       error: null,
-      useGlobalSettings: true, // Flag to use global vs local settings
 
       // Actions
       
@@ -67,8 +65,7 @@ export const useSiteSettingsStore = create(
           if (missingVars.length > 0) {
             console.warn('Firebase not configured. Missing environment variables:', missingVars);
             set({ 
-              isLoadingGlobal: false, 
-              useGlobalSettings: false,
+              isLoadingGlobal: false,
               error: `Firebase not configured. Missing: ${missingVars.join(', ')}`
             });
             return;
@@ -78,8 +75,7 @@ export const useSiteSettingsStore = create(
           if (error) {
             console.warn('Could not load global settings:', error.message);
             set({ 
-              isLoadingGlobal: false, 
-              useGlobalSettings: false,
+              isLoadingGlobal: false,
               error: `Firebase connection failed: ${error.message}`
             });
             return;
@@ -89,13 +85,11 @@ export const useSiteSettingsStore = create(
             set({ 
               globalSettings: data,
               isLoadingGlobal: false,
-              useGlobalSettings: true,
               error: null
             });
           } else {
             set({ 
-              isLoadingGlobal: false, 
-              useGlobalSettings: false,
+              isLoadingGlobal: false,
               error: 'Global settings not found in Firebase'
             });
           }
@@ -103,8 +97,7 @@ export const useSiteSettingsStore = create(
           console.warn('Error loading global settings:', error);
           set({ 
             error: `Firebase error: ${error.message}`,
-            isLoadingGlobal: false,
-            useGlobalSettings: false
+            isLoadingGlobal: false
           });
         }
       },
@@ -114,9 +107,7 @@ export const useSiteSettingsStore = create(
         set({ isLoading: true, error: null });
         try {
           const { user } = useFirebaseAuthStore.getState();
-          const currentSettings = get().useGlobalSettings && get().globalSettings 
-            ? get().globalSettings 
-            : get().settings;
+          const currentSettings = get().globalSettings || DEFAULT_SETTINGS;
           
           // Check if logo URLs are being updated to increment cache-busting version
           const logoChanged = newSettings.logoUrl !== undefined && newSettings.logoUrl !== currentSettings.logoUrl;
@@ -153,19 +144,18 @@ export const useSiteSettingsStore = create(
               // Successfully saved to Firebase, update global settings
               set({ 
                 globalSettings: validatedSettings,
-                useGlobalSettings: true,
                 isLoading: false 
               });
               return validatedSettings;
             } else {
               console.warn('Could not save to global settings:', dbError.message);
-              // Fall back to local storage
+              // Fall back to updating global settings in memory only
             }
           }
           
-          // Save locally (fallback or when not authenticated)
+          // Update global settings in memory (fallback or when not authenticated)
           set({ 
-            settings: validatedSettings,
+            globalSettings: validatedSettings,
             isLoading: false 
           });
           
@@ -187,7 +177,7 @@ export const useSiteSettingsStore = create(
             logoVersion: Date.now() // Generate new version to force cache refresh
           };
           set({ 
-            settings: resetSettings,
+            globalSettings: resetSettings,
             isLoading: false 
           });
           return resetSettings;
@@ -205,24 +195,18 @@ export const useSiteSettingsStore = create(
         await get().loadGlobalSettings();
       },
 
-      // Toggle between global and local settings
-      toggleGlobalSettings: (useGlobal) => {
-        set({ useGlobalSettings: useGlobal });
-      },
-
-      // Get current active settings (global or local)
-      getActiveSettings: () => {
+      // Getters for specific settings (directly access global settings)
+      getSiteTitle: () => {
         const state = get();
-        return state.useGlobalSettings && state.globalSettings 
-          ? state.globalSettings 
-          : state.settings;
+        return (state.globalSettings || DEFAULT_SETTINGS).siteTitle;
       },
-
-      // Getters for specific settings (uses active settings)
-      getSiteTitle: () => get().getActiveSettings().siteTitle,
-      getSiteDescription: () => get().getActiveSettings().siteDescription,
+      getSiteDescription: () => {
+        const state = get();
+        return (state.globalSettings || DEFAULT_SETTINGS).siteDescription;
+      },
       getLogoUrl: () => {
-        const settings = get().getActiveSettings();
+        const state = get();
+        const settings = state.globalSettings || DEFAULT_SETTINGS;
         const logoUrl = settings.logoUrl;
         if (!logoUrl) return logoUrl;
         // Add cache-busting parameter for relative URLs (public folder assets)
@@ -232,7 +216,8 @@ export const useSiteSettingsStore = create(
         return logoUrl;
       },
       getFooterLogoUrl: () => {
-        const settings = get().getActiveSettings();
+        const state = get();
+        const settings = state.globalSettings || DEFAULT_SETTINGS;
         const footerLogoUrl = settings.footer.logoUrl;
         if (!footerLogoUrl) return footerLogoUrl;
         // Add cache-busting parameter for relative URLs (public folder assets)
@@ -241,21 +226,49 @@ export const useSiteSettingsStore = create(
         }
         return footerLogoUrl;
       },
-      getFooterDescription: () => get().getActiveSettings().footer.description,
-      getFooterFeatures: () => get().getActiveSettings().footer.features,
-      getFooterSupport: () => get().getActiveSettings().footer.support,
-      getFooterCopyright: () => get().getActiveSettings().footer.copyright,
-      getRecommendedFeedsTitle: () => get().getActiveSettings().recommendedFeeds.title,
-      getRecommendedFeedsDescription: () => get().getActiveSettings().recommendedFeeds.description,
+      getFooterDescription: () => {
+        const state = get();
+        return (state.globalSettings || DEFAULT_SETTINGS).footer.description;
+      },
+      getFooterFeatures: () => {
+        const state = get();
+        return (state.globalSettings || DEFAULT_SETTINGS).footer.features;
+      },
+      getFooterSupport: () => {
+        const state = get();
+        return (state.globalSettings || DEFAULT_SETTINGS).footer.support;
+      },
+      getFooterCopyright: () => {
+        const state = get();
+        return (state.globalSettings || DEFAULT_SETTINGS).footer.copyright;
+      },
+      getRecommendedFeedsTitle: () => {
+        const state = get();
+        return (state.globalSettings || DEFAULT_SETTINGS).recommendedFeeds.title;
+      },
+      getRecommendedFeedsDescription: () => {
+        const state = get();
+        return (state.globalSettings || DEFAULT_SETTINGS).recommendedFeeds.description;
+      },
 
       // Clear error
       clearError: () => set({ error: null })
     }),
     {
       name: 'site-settings-storage',
-      version: 1,
-      // Only persist the settings, not loading states
-      partialize: (state) => ({ settings: state.settings })
+      version: 2, // Increment version due to structure change
+      // Only persist the global settings, not loading states
+      partialize: (state) => ({ globalSettings: state.globalSettings }),
+      migrate: (persistedState, version) => {
+        if (version < 2) {
+          // Migrate from old structure to new structure
+          const oldState = persistedState;
+          return {
+            globalSettings: oldState.globalSettings || oldState.settings || DEFAULT_SETTINGS
+          };
+        }
+        return persistedState;
+      }
     }
   )
 );
