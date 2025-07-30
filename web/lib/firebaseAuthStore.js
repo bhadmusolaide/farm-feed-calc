@@ -62,10 +62,10 @@ const useFirebaseAuthStore = create(
             isLoading: false 
           });
           
-          return { user, error: null };
+          return { success: true, user, error: null };
         } catch (error) {
           set({ error: error.message, isLoading: false });
-          return { user: null, error };
+          return { success: false, user: null, error };
         }
       },
 
@@ -109,10 +109,10 @@ const useFirebaseAuthStore = create(
             isLoading: false 
           });
           
-          return { user, error: null };
+          return { success: true, user, error: null };
         } catch (error) {
           set({ error: error.message, isLoading: false });
-          return { user: null, error };
+          return { success: false, user: null, error };
         }
       },
 

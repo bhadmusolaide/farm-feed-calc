@@ -21,7 +21,8 @@ export default function SettingsPage() {
     error,
     updateSettings, 
     resetToDefaults, 
-    loadGlobalSettings 
+    loadGlobalSettings,
+    initialize 
   } = useSiteSettingsStore();
   const { 
     feeds, 
