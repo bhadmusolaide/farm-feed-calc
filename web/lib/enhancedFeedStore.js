@@ -160,7 +160,7 @@ export const useEnhancedFeedStore = create(
               savedCalculations: [{
                 id: saved.id,
                 ...calculationData,
-                createdAt: saved.createdAt || new Date().toISOString()
+                savedAt: new Date().toISOString()
               }, ...savedCalculations],
               isSyncing: false
             });
@@ -180,21 +180,36 @@ export const useEnhancedFeedStore = create(
       // Load saved calculations
       loadSavedCalculations: async () => {
         const { user } = useFirebaseAuthStore.getState();
-    if (!user) {
+        console.log('🔍 loadSavedCalculations called, user:', user ? user.id : 'no user');
+        
+        if (!user) {
+          console.log('❌ No user authenticated, returning');
           return;
         }
         
         try {
           set({ isSyncing: true, syncError: null });
+          console.log('📡 Fetching calculations from database...');
           const calculations = await db.getUserCalculations();
-          // Filter out any calculations with null or undefined IDs
-          const validCalculations = calculations.filter(calc => calc && calc.id);
+          console.log('📊 Raw calculations from DB:', calculations);
+          
+          // Filter out any calculations with null or undefined IDs and map field names
+          const validCalculations = calculations
+            .filter(calc => calc && calc.id)
+            .map(calc => ({
+              ...calc,
+              // Map database field names to component expected field names
+              savedAt: calc.created_at?.toDate?.() ? calc.created_at.toDate().toISOString() : calc.created_at || new Date().toISOString()
+            }));
+          console.log('✅ Valid calculations after filtering and mapping:', validCalculations);
+          
           set({ 
             savedCalculations: validCalculations,
             isSyncing: false
           });
+          console.log('💾 Saved calculations updated in store');
         } catch (error) {
-          console.error('Error loading calculations:', error);
+          console.error('❌ Error loading calculations:', error);
           set({ isSyncing: false, syncError: error.message });
         }
       },

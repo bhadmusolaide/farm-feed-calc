@@ -55,15 +55,23 @@ export class DatabaseService {
   }
 
   async getUserCalculations() {
-    if (!this.isAvailable()) return [];
+    if (!this.isAvailable()) {
+      console.log('🚫 Database not available');
+      return [];
+    }
     
     try {
       const { user } = useFirebaseAuthStore.getState();
-      if (!user) return [];
+      if (!user) {
+        console.log('🚫 No user for getUserCalculations');
+        return [];
+      }
+      console.log('🔍 Getting calculations for user:', user.id);
       const result = await feedCalculationsDB.getByUser(user.id);
+      console.log('📋 Database result:', result);
       return result.data || [];
     } catch (error) {
-      console.error('Error fetching calculations:', error);
+      console.error('❌ Error fetching calculations:', error);
       return [];
     }
   }

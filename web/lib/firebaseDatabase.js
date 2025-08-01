@@ -35,18 +35,24 @@ export const feedCalculationsDB = {
   // Get all calculations for a user
   getByUser: async (userId) => {
     try {
+      console.log('🔍 Querying feed_calculations for user:', userId);
       const q = query(
         collection(db, 'feed_calculations'),
         where('user_id', '==', userId),
         orderBy('created_at', 'desc')
       );
       const querySnapshot = await getDocs(q);
+      console.log('📊 Query snapshot size:', querySnapshot.size);
       const calculations = [];
       querySnapshot.forEach((doc) => {
-        calculations.push({ id: doc.id, ...doc.data() });
+        const docData = { id: doc.id, ...doc.data() };
+        console.log('📄 Document:', docData);
+        calculations.push(docData);
       });
+      console.log('📋 Final calculations array:', calculations);
       return { data: calculations, error: null };
     } catch (error) {
+      console.error('❌ Firestore query error:', error);
       return { data: [], error };
     }
   },
