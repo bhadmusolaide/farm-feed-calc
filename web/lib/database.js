@@ -37,7 +37,7 @@ export class DatabaseService {
     try {
       const { user } = useFirebaseAuthStore.getState();
       if (!user) throw new Error('User not authenticated');
-      const result = await feedCalculationsDB.save(user.uid, calculationData);
+      const result = await feedCalculationsDB.save(user.id, calculationData);
       
       if (result.error) {
         throw result.error;
@@ -60,7 +60,7 @@ export class DatabaseService {
     try {
       const { user } = useFirebaseAuthStore.getState();
       if (!user) return [];
-      const result = await feedCalculationsDB.getByUser(user.uid);
+      const result = await feedCalculationsDB.getByUser(user.id);
       return result.data || [];
     } catch (error) {
       console.error('Error fetching calculations:', error);
@@ -97,7 +97,7 @@ export class DatabaseService {
     try {
       const { user } = useFirebaseAuthStore.getState();
       if (!user) throw new Error('User not authenticated');
-      return await customFeedsDB.save(user.uid, feedData);
+      return await customFeedsDB.save(user.id, feedData);
     } catch (error) {
       console.error('Error adding custom feed:', error);
       throw error;
@@ -110,7 +110,7 @@ export class DatabaseService {
     try {
       const { user } = useFirebaseAuthStore.getState();
       if (!user) return [];
-      const result = await customFeedsDB.getByUser(user.uid);
+      const result = await customFeedsDB.getByUser(user.id);
       return result.data || [];
     } catch (error) {
       console.error('Error fetching custom feeds:', error);
@@ -147,7 +147,7 @@ export class DatabaseService {
     try {
       const { user } = useFirebaseAuthStore.getState();
       if (!user) throw new Error('User not authenticated');
-      return await customLocalMixesDB.save(user.uid, mixData);
+      return await customLocalMixesDB.save(user.id, mixData);
     } catch (error) {
       console.error('Error adding local mix:', error);
       throw error;
@@ -160,7 +160,7 @@ export class DatabaseService {
     try {
       const { user } = useFirebaseAuthStore.getState();
       if (!user) return [];
-      const result = await customLocalMixesDB.getByUser(user.uid);
+      const result = await customLocalMixesDB.getByUser(user.id);
       return result.data || [];
     } catch (error) {
       console.error('Error fetching local mixes:', error);
@@ -197,7 +197,7 @@ export class DatabaseService {
     try {
       const { user } = useFirebaseAuthStore.getState();
       if (!user) throw new Error('User not authenticated');
-      return await userProfilesDB.update(user.uid, { preferences });
+      return await userProfilesDB.update(user.id, { preferences });
     } catch (error) {
       console.error('Error saving user preferences:', error);
       throw error;
