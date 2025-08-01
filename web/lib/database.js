@@ -37,7 +37,17 @@ export class DatabaseService {
     try {
       const { user } = useFirebaseAuthStore.getState();
       if (!user) throw new Error('User not authenticated');
-      return await feedCalculationsDB.save(user.uid, calculationData);
+      const result = await feedCalculationsDB.save(user.uid, calculationData);
+      
+      if (result.error) {
+        throw result.error;
+      }
+      
+      if (!result.id) {
+        throw new Error('Failed to save calculation - no ID returned');
+      }
+      
+      return result;
     } catch (error) {
       console.error('Error saving calculation:', error);
       throw error;
