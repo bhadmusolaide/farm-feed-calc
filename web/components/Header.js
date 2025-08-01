@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Menu, X, Info, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useHybridSiteSettingsStore } from '../lib/hybridStore';
+import { useUnifiedStore } from '../lib/unifiedStore';
 import ThemeToggle from './ThemeToggle';
 import UserProfile from './UserProfile';
 
@@ -22,7 +22,7 @@ export default function Header() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const router = useRouter();
-  const { getSiteTitle, getSiteDescription } = useHybridSiteSettingsStore();
+  const { getSiteTitle, getSiteDescription } = useUnifiedStore();
 
   return (
     <>

@@ -1,26 +1,25 @@
 'use client';
 
-import { useHybridSavedResultsStore, useHybridFeedStore } from '../lib/hybridStore';
+import { useUnifiedStore } from '../lib/unifiedStore';
 import { Package, Calendar, Trash2, Eye, Edit2, Check, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 
 export default function SavedResults() {
-  const { savedResults, deleteResult, updateResultName, clearAllResults, loadSavedResults } = useHybridSavedResultsStore();
-  const { setActiveTab, updateFeedStore } = useHybridFeedStore();
+  const { savedCalculations, deleteCalculation, updateCalculationName, clearAllCalculations, loadSavedCalculations, setActiveTab, loadCalculation } = useUnifiedStore();
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
 
   // Load saved results when component mounts
   useEffect(() => {
-    if (loadSavedResults) {
-      loadSavedResults();
+    if (loadSavedCalculations) {
+      loadSavedCalculations();
     }
-  }, [loadSavedResults]);
+  }, [loadSavedCalculations]);
 
   const handleLoadResult = (result) => {
-    // Load the saved result into the main store using the hybrid store method
-    updateFeedStore(result);
+    // Load the saved result into the main store using the unified store method
+    loadCalculation(result);
     
     // Navigate to results tab
     setActiveTab('results');
@@ -33,7 +32,7 @@ export default function SavedResults() {
 
   const handleSaveEdit = () => {
     if (editName.trim()) {
-      updateResultName(editingId, editName.trim());
+      updateCalculationName(editingId, editName.trim());
     }
     setEditingId(null);
     setEditName('');
@@ -55,7 +54,7 @@ export default function SavedResults() {
     });
   };
 
-  if (savedResults.length === 0) {
+  if (savedCalculations.length === 0) {
     return (
       <div className="max-w-4xl mx-auto space-mobile">
         <div className="text-center py-12">
@@ -88,13 +87,13 @@ export default function SavedResults() {
           Saved Results
         </h2>
         <p className="text-neutral-600 dark:text-neutral-300">
-          {savedResults.length} saved calculation{savedResults.length !== 1 ? 's' : ''}
+          {savedCalculations.length} saved calculation{savedCalculations.length !== 1 ? 's' : ''}
         </p>
       </div>
 
       {/* Saved Results List */}
       <div className="space-y-4">
-        {savedResults.filter(result => result && result.id).map((result) => (
+        {savedCalculations.filter(result => result && result.id).map((result) => (
           <div key={result.id} className="card p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
@@ -150,7 +149,7 @@ export default function SavedResults() {
                   View
                 </button>
                 <button
-                  onClick={() => deleteResult(result.id)}
+                  onClick={() => deleteCalculation(result.id)}
                   className="btn-ghost btn-sm text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -205,12 +204,12 @@ export default function SavedResults() {
       </div>
       
       {/* Clear All Button */}
-      {savedResults.length > 0 && (
+      {savedCalculations.length > 0 && (
         <div className="text-center mt-8">
           <button
             onClick={() => {
               if (confirm('Are you sure you want to delete all saved results? This action cannot be undone.')) {
-                clearAllResults();
+                clearAllCalculations();
               }
             }}
             className="btn-outline text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20"

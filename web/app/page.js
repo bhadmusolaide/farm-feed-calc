@@ -6,12 +6,12 @@ import { ArrowRight, Calculator, TrendingUp, Shield, Users, Star, CheckCircle, C
 import Header from '../components/Header';
 import OfflineIndicator from '../components/OfflineIndicator';
 import VideoEmbed from '../components/VideoEmbed';
-import { useHybridSiteSettingsStore } from '../lib/hybridStore';
+import { useUnifiedStore } from '../lib/unifiedStore';
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
-  const { getSiteTitle, getSiteDescription, getFooterDescription, getFooterFeatures, getFooterSupport, getFooterCopyright, getHeroVideoEnabled, getHeroVideoUrl, getHeroVideoTitle } = useHybridSiteSettingsStore();
+  const { getSiteTitle, getSiteDescription, getFooterDescription, getFooterFeatures, getFooterSupport, getFooterCopyright, getHeroVideoEnabled, getHeroVideoUrl, getHeroVideoTitle } = useUnifiedStore();
 
   useEffect(() => {
     setIsClient(true);

@@ -1,18 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useHybridSavedResultsStore } from '../lib/hybridStore';
+import { useUnifiedStore } from '../lib/unifiedStore';
 import { Calendar, TrendingUp, AlertTriangle, ChevronRight, X, Minus, Plus, BarChart3 } from 'lucide-react';
 import { clsx } from 'clsx';
 import ProgressTracker from './ProgressTracker';
 
 const DailyDashboard = () => {
   const { 
-    savedResults, 
+    savedCalculations, 
     getAutoProgressionCalculations, 
     calculateNextDay, 
     updateMortality 
-  } = useHybridSavedResultsStore();
+  } = useUnifiedStore();
   
   const [autoProgressionCalcs, setAutoProgressionCalcs] = useState([]);
   const [expandedCard, setExpandedCard] = useState(null);
@@ -23,7 +23,7 @@ const DailyDashboard = () => {
   useEffect(() => {
     const calculations = getAutoProgressionCalculations();
     setAutoProgressionCalcs(calculations);
-  }, [savedResults]);
+  }, [savedCalculations]);
 
   const handleMortalityUpdate = (calcId, deaths) => {
     if (deaths > 0) {

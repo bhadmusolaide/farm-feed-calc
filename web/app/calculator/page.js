@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useHybridFeedStore, useHybridKnowledgeStore, useMigrationHelper } from '../../lib/hybridStore';
-import { useHybridSiteSettingsStore } from '../../lib/hybridStore';
+import { useUnifiedStore } from '../../lib/unifiedStore';
 import FeedCalculator from '../../components/FeedCalculator';
 import FeedResults from '../../components/FeedResults';
 import RecommendedFeeds from '../../components/RecommendedFeeds';
@@ -49,12 +48,7 @@ const tabs = [
 ];
 
 export default function HomePage() {
-  const { activeTab, setActiveTab, showResults } = useHybridFeedStore();
-  const { loadWeeklyKnowledge } = useHybridKnowledgeStore();
-  
-  // Initialize migration helper for authenticated users
-  useMigrationHelper();
-  const { getSiteTitle, getFooterDescription, getFooterFeatures, getFooterSupport, getFooterCopyright } = useHybridSiteSettingsStore();
+  const { activeTab, setActiveTab, showResults, loadWeeklyKnowledge, getSiteTitle, getFooterDescription, getFooterFeatures, getFooterSupport, getFooterCopyright } = useUnifiedStore();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {

@@ -1,8 +1,9 @@
-import { useFeedStore } from './store';
-import { useFeedManagementStore } from './feedManagementStore';
-import { useKnowledgeStore } from './store';
+import { useUnifiedStore } from './unifiedStore';
 import { db } from './database';
 import useFirebaseAuthStore from './firebaseAuthStore';
+
+// Get store instance for non-React usage
+const getUnifiedStoreState = () => useUnifiedStore.getState();
 
 /**
  * Migration utilities to help users migrate from local storage to Firebase database
@@ -59,8 +60,8 @@ export const migrateFeedCalculations = async () => {
     throw new Error('User must be authenticated to migrate data');
   }
   
-  const feedStore = useFeedStore.getState();
-  const savedCalculations = feedStore.savedCalculations || [];
+  const unifiedStore = getUnifiedStoreState();
+  const savedCalculations = unifiedStore.savedCalculations || [];
   
   const migrationResults = {
     total: savedCalculations.length,
@@ -99,8 +100,8 @@ export const migrateCustomFeeds = async () => {
     throw new Error('User must be authenticated to migrate data');
   }
   
-  const feedMgmtStore = useFeedManagementStore.getState();
-  const feeds = feedMgmtStore.feeds || {};
+  const unifiedStore = getUnifiedStoreState();
+  const feeds = unifiedStore.customFeeds || {};
   
   const migrationResults = {
     total: 0,
@@ -143,8 +144,8 @@ export const migrateLocalMixes = async () => {
     throw new Error('User must be authenticated to migrate data');
   }
   
-  const feedMgmtStore = useFeedManagementStore.getState();
-  const localMixes = feedMgmtStore.localMixes || {};
+  const unifiedStore = getUnifiedStoreState();
+  const localMixes = unifiedStore.localMixes || {};
   
   const migrationResults = {
     total: 0,
@@ -185,8 +186,8 @@ export const migrateFavorites = async () => {
     throw new Error('User must be authenticated to migrate data');
   }
   
-  const knowledgeStore = useKnowledgeStore.getState();
-  const favorites = knowledgeStore.favorites || [];
+  const unifiedStore = getUnifiedStoreState();
+  const favorites = unifiedStore.favorites || [];
   
   if (favorites.length === 0) {
     return {
@@ -353,14 +354,14 @@ export const getMigrationSummary = () => {
   const summary = [];
   
   if (localData.hasFeedCalculations) {
-    const feedStore = useFeedStore.getState();
-    const count = feedStore.savedCalculations?.length || 0;
+    const unifiedStore = getUnifiedStoreState();
+    const count = unifiedStore.savedCalculations?.length || 0;
     summary.push(`${count} saved feed calculation${count !== 1 ? 's' : ''}`);
   }
   
   if (localData.hasCustomFeeds) {
-    const feedMgmtStore = useFeedManagementStore.getState();
-    const feeds = feedMgmtStore.feeds || {};
+    const unifiedStore = getUnifiedStoreState();
+    const feeds = unifiedStore.customFeeds || {};
     const customFeedCount = Object.values(feeds)
       .flat()
       .filter(feed => feed.isCustom).length;
@@ -368,16 +369,16 @@ export const getMigrationSummary = () => {
   }
   
   if (localData.hasModifiedMixes) {
-    const feedMgmtStore = useFeedManagementStore.getState();
-    const localMixes = feedMgmtStore.localMixes || {};
+    const unifiedStore = getUnifiedStoreState();
+    const localMixes = unifiedStore.localMixes || {};
     const modifiedMixCount = Object.values(localMixes)
       .filter(mix => mix.isCustom).length;
     summary.push(`${modifiedMixCount} modified local mix${modifiedMixCount !== 1 ? 'es' : ''}`);
   }
   
   if (localData.hasFavorites) {
-    const knowledgeStore = useKnowledgeStore.getState();
-    const count = knowledgeStore.favorites?.length || 0;
+    const unifiedStore = getUnifiedStoreState();
+    const count = unifiedStore.favorites?.length || 0;
     summary.push(`${count} favorite knowledge item${count !== 1 ? 's' : ''}`);
   }
   

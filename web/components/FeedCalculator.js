@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useHybridFeedStore } from '../lib/hybridStore';
-import { getAvailableBreeds, getTargetWeightOptions, getRearingStyleOptions } from '../lib/store';
+import { useUnifiedStore, getAvailableBreeds, getTargetWeightOptions, getRearingStyleOptions } from '../lib/unifiedStore';
 import { getBreedsWithImages } from '../lib/breedImages';
 import { Calculator, Clock, Users, Target, Zap, RotateCcw, Calendar } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -30,7 +29,7 @@ export default function FeedCalculator() {
     setActiveTab,
     calculateFeedRequirements,
     resetForm,
-  } = useHybridFeedStore();
+  } = useUnifiedStore();
 
   const { toast, removeToast } = useToast();
   const [ageInput, setAgeInput] = useState('days');

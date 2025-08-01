@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Upload, X, Eye, EyeOff, Plus, Edit, Trash2, RotateCcw, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useHybridSiteSettingsStore } from '../../lib/hybridStore';
-import { useFeedManagementStore } from '../../lib/feedManagementStore';
+import { useUnifiedStore } from '../../lib/unifiedStore';
 import useFirebaseAuthStore from '../../lib/firebaseAuthStore';
 import { useToast } from '../../components/Toast';
 import FeedForm from '../../components/FeedForm';
@@ -22,23 +21,21 @@ export default function SettingsPage() {
     updateSettings, 
     resetToDefaults, 
     loadGlobalSettings,
-    initialize 
-  } = useHybridSiteSettingsStore();
-  const { 
-    feeds, 
+    initialize,
+    customFeeds, 
     localMixes, 
-    addFeed, 
-    updateFeed, 
-    deleteFeed, 
+    addCustomFeed, 
+    updateCustomFeed, 
+    deleteCustomFeed, 
     updateLocalMix, 
-    resetToDefaults: resetFeedsToDefaults,
+    resetCustomFeeds,
     FEED_CATEGORIES,
     PACKAGING_OPTIONS,
     AVAILABILITY_REGIONS,
     FEED_TAGS,
     createEmptyFeed,
     createEmptyLocalMix
-  } = useFeedManagementStore();
+  } = useUnifiedStore();
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
   const [activeTab, setActiveTab] = useState('site');
@@ -179,10 +176,10 @@ export default function SettingsPage() {
   const handleFeedSave = (feedData) => {
     try {
       if (editingFeed) {
-        updateFeed(feedData.category, editingFeed.id, feedData);
+        updateCustomFeed(feedData.category, editingFeed.id, feedData);
         toast.success('Feed updated successfully!');
       } else {
-        addFeed(feedData.category, feedData);
+        addCustomFeed(feedData.category, feedData);
         toast.success('Feed added successfully!');
       }
       setEditingFeed(null);
@@ -210,7 +207,7 @@ export default function SettingsPage() {
     try {
       // Find which category the feed belongs to
       let feedCategory = null;
-      for (const [category, categoryFeeds] of Object.entries(feeds)) {
+      for (const [category, categoryFeeds] of Object.entries(customFeeds)) {
         if (categoryFeeds.find(feed => feed.id === feedId)) {
           feedCategory = category;
           break;
@@ -218,7 +215,7 @@ export default function SettingsPage() {
       }
       
       if (feedCategory) {
-        deleteFeed(feedCategory, feedId);
+        deleteCustomFeed(feedCategory, feedId);
         toast.success('Feed deleted successfully!');
       } else {
         toast.error('Feed not found');
@@ -230,7 +227,7 @@ export default function SettingsPage() {
   };
 
   const handleResetFeeds = () => {
-    resetFeedsToDefaults();
+    resetCustomFeeds();
     toast.success('Feed data reset to defaults successfully!');
   };
 
@@ -825,12 +822,12 @@ export default function SettingsPage() {
                   <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                   Commercial Feeds
                   <span className="ml-2 text-sm text-neutral-500 dark:text-neutral-400">
-                    ({Object.values(feeds).reduce((total, categoryFeeds) => total + categoryFeeds.length, 0)} total)
+                    ({Object.values(customFeeds).reduce((total, categoryFeeds) => total + categoryFeeds.length, 0)} total)
                   </span>
                 </h3>
                 
                 <div className="space-y-4">
-                  {Object.entries(feeds).map(([category, categoryFeeds]) => (
+                  {Object.entries(customFeeds).map(([category, categoryFeeds]) => (
                     <div key={category}>
                       <h3 className="text-md font-medium text-neutral-800 dark:text-neutral-200 mb-3 capitalize">
                         {category} Feeds ({categoryFeeds.length})

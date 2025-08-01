@@ -1,6 +1,6 @@
 'use client';
 
-import { useHybridFeedStore, useHybridSavedResultsStore } from '../lib/hybridStore';
+import { useUnifiedStore } from '../lib/unifiedStore';
 import { Package, Clock, Lightbulb, Calculator, Copy, Check, Save, Thermometer, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import { clsx } from 'clsx';
@@ -11,8 +11,7 @@ import { calculateFeedCost, calculateExpectedWeight, getFCRReference } from '../
 import { calculateOptimalTemperature } from '../../shared/utils/temperatureCalculator';
 
 export default function FeedResults() {
-  const { feedResults, feedingSchedule, bestPractices, birdType, breed, ageInDays, quantity, rearingStyle, targetWeight } = useHybridFeedStore();
-  const { saveResult } = useHybridSavedResultsStore();
+  const { feedResults, feedingSchedule, bestPractices, birdType, breed, ageInDays, quantity, rearingStyle, targetWeight, saveCalculation } = useUnifiedStore();
   const { toast } = useToast();
   const [copiedSection, setCopiedSection] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -84,7 +83,15 @@ export default function FeedResults() {
     };
     
     try {
-      const savedId = await saveResult(resultData, calculationName || undefined, autoProgression);
+      const savedId = await saveCalculation({
+        ...resultData,
+        name: calculationName || `${birdType} - ${breed} (Day ${ageInDays})`,
+        autoProgression,
+        startDate: autoProgression ? new Date().toISOString() : null,
+        currentQuantity: quantity,
+        mortalityLog: [],
+        lastCalculated: new Date().toISOString()
+      });
       
       // Only show success if we actually got a saved ID
       if (savedId) {

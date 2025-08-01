@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useHybridKnowledgeStore } from '../lib/hybridStore';
+import { useUnifiedStore } from '../lib/unifiedStore';
 import { getWeeklyKnowledge, getSeasonalTips, getEmergencyAdvice, EMERGENCY_SIGNS, KNOWLEDGE_SNIPPETS } from '../../shared/data/knowledgeSnippets.js';
 import { BookOpen, Calendar, AlertTriangle, Heart, Star, ChevronRight, Search, Filter, Clock, Thermometer, Droplets, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function KnowledgeSnippets() {
-  const { favorites, addToFavorites, removeFromFavorites } = useHybridKnowledgeStore();
+  const { favorites, addToFavorites, removeFromFavorites } = useUnifiedStore();
   const [activeTab, setActiveTab] = useState('weekly');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');

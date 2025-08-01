@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useHybridSiteSettingsStore } from '../lib/hybridStore';
+import { useUnifiedStore } from '../lib/unifiedStore';
 
 export default function SettingsInitializer() {
-  const { initialize } = useHybridSiteSettingsStore();
+  const { initialize } = useUnifiedStore();
 
   useEffect(() => {
     // Initialize global settings when the app loads

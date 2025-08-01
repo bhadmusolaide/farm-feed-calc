@@ -212,6 +212,29 @@ export class DatabaseService {
     }
   }
 
+  async getUserPreferences() {
+    if (!this.isAvailable()) return null;
+    
+    try {
+      const { user } = useFirebaseAuthStore.getState();
+      if (!user) return null;
+      const profile = await userProfilesDB.get(user.id);
+      return profile?.data?.preferences || null;
+    } catch (error) {
+      console.error('Error getting user preferences:', error);
+      return null;
+    }
+  }
+
+  async updateUserPreferences(preferences) {
+    return await this.saveUserPreferences(preferences);
+  }
+
+  // Migration-specific method alias
+  async saveFeedCalculation(calculationData) {
+    return await this.saveCalculation(calculationData);
+  }
+
   // Utility methods
   isAuthenticated() {
     const { user } = useFirebaseAuthStore.getState();

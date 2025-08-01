@@ -1,10 +1,10 @@
 'use client';
 
-import { useOfflineStore } from '../lib/hybridStore';
+import { useUnifiedStore } from '../lib/unifiedStore';
 import { WifiOff } from 'lucide-react';
 
 function OfflineIndicator() {
-  const { isOnline } = useOfflineStore();
+  const { isOnline } = useUnifiedStore();
 
   if (isOnline) return null;
 

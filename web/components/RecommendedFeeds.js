@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useHybridFeedStore } from '../lib/hybridStore';
-import { useHybridSiteSettingsStore } from '../lib/hybridStore';
-import { useFeedManagementStore } from '../lib/feedManagementStore';
+import { useUnifiedStore } from '../lib/unifiedStore';
 import { getLocalFeedMix, calculateLocalFeedCost } from '../../shared/data/feedBrands.js';
 import { BookOpen, Package, MapPin, DollarSign, Info, Star, Filter, Search } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -12,9 +10,7 @@ import { LoadingWrapper } from './LoadingState';
 import { formatErrorForUser, logError } from '../../shared/utils/errorHandling';
 
 export default function RecommendedFeeds() {
-  const { birdType, ageInDays } = useHybridFeedStore();
-  const { getCurrency, getRecommendedFeedsTitle, getRecommendedFeedsDescription } = useHybridSiteSettingsStore();
-  const { feeds, localMixes } = useFeedManagementStore();
+  const { birdType, ageInDays, getCurrency, getRecommendedFeedsTitle, getRecommendedFeedsDescription, customFeeds, localMixes } = useUnifiedStore();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState('commercial');
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,8 +33,8 @@ export default function RecommendedFeeds() {
         else feedStage = 'finisher';
       }
       
-      // Get feeds from the management store for the appropriate stage
-      return feeds[feedStage] || [];
+      // Get feeds from the unified store for the appropriate stage
+      return customFeeds[feedStage] || [];
     } catch (err) {
       logError(err, 'Failed to get recommended feeds', { birdType, ageInDays });
       setError(err);
@@ -48,7 +44,7 @@ export default function RecommendedFeeds() {
       });
       return [];
     }
-  }, [birdType, ageInDays, feeds, addToast]);
+  }, [birdType, ageInDays, customFeeds, addToast]);
 
   const localFeedMix = useMemo(() => {
     try {

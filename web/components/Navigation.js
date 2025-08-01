@@ -1,10 +1,10 @@
 'use client';
 
-import { useHybridFeedStore } from '../lib/hybridStore';
+import { useUnifiedStore } from '../lib/unifiedStore';
 import { clsx } from 'clsx';
 
 export default function Navigation({ tabs, activeTab, onTabChange }) {
-  const { showResults } = useHybridFeedStore();
+  const { showResults } = useUnifiedStore();
 
   return (
     <div className="glass-card p-1 backdrop-blur-xl border border-white/20 dark:border-neutral-700/20">
