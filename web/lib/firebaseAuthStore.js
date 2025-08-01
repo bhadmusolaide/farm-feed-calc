@@ -65,7 +65,7 @@ const useFirebaseAuthStore = create(
           return { success: true, user, error: null };
         } catch (error) {
           set({ error: error.message, isLoading: false });
-          return { success: false, user: null, error };
+          return { success: false, user: null, error: error.message };
         }
       },
 
@@ -112,7 +112,7 @@ const useFirebaseAuthStore = create(
           return { success: true, user, error: null };
         } catch (error) {
           set({ error: error.message, isLoading: false });
-          return { success: false, user: null, error };
+          return { success: false, user: null, error: error.message };
         }
       },
 
@@ -129,7 +129,7 @@ const useFirebaseAuthStore = create(
           return { error: null };
         } catch (error) {
           set({ error: error.message });
-          return { error };
+          return { error: error.message };
         }
       },
 
@@ -138,14 +138,14 @@ const useFirebaseAuthStore = create(
           await sendPasswordResetEmail(auth, email);
           return { error: null };
         } catch (error) {
-          return { error };
+          return { error: error.message };
         }
       },
 
       updateUserProfile: async (updates) => {
         try {
           const { user, userProfile } = get();
-          if (!user || !userProfile) return { error: new Error('No user logged in') };
+          if (!user || !userProfile) return { error: 'No user logged in' };
           
           const updatedProfile = {
             ...userProfile,
@@ -158,7 +158,7 @@ const useFirebaseAuthStore = create(
           set({ userProfile: updatedProfile });
           return { error: null };
         } catch (error) {
-          return { error };
+          return { error: error.message };
         }
       },
 

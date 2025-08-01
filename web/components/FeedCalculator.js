@@ -32,6 +32,7 @@ export default function FeedCalculator() {
     resetForm,
   } = useHybridFeedStore();
 
+  const { toast, removeToast } = useToast();
   const [ageInput, setAgeInput] = useState('days');
   const [ageWeeks, setAgeWeeks] = useState(Math.ceil(ageInDays / 7));
   const [hoveredBreed, setHoveredBreed] = useState(null);
@@ -53,8 +54,6 @@ export default function FeedCalculator() {
       setAgeWeeks(numValue);
     }
   };
-
-  const { toast, removeToast } = useToast();
 
   const handleCalculate = async () => {
     
@@ -124,7 +123,8 @@ export default function FeedCalculator() {
   const confirmReset = () => {
     resetForm();
     setAgeInput('days');
-    showToast('Calculator reset successfully!', 'success');
+    setShowResetConfirm(false);
+    toast.success('Calculator reset successfully!');
   };
 
   const handleMouseEnter = (breedName, event) => {

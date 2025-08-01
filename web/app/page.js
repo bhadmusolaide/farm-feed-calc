@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { ArrowRight, Calculator, TrendingUp, Shield, Users, Star, CheckCircle, Play, ChevronDown } from 'lucide-react';
 import Header from '../components/Header';
 import OfflineIndicator from '../components/OfflineIndicator';
+import VideoEmbed from '../components/VideoEmbed';
 import { useHybridSiteSettingsStore } from '../lib/hybridStore';
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
-  const { getSiteTitle, getSiteDescription, getFooterDescription, getFooterFeatures, getFooterSupport, getFooterCopyright } = useHybridSiteSettingsStore();
+  const { getSiteTitle, getSiteDescription, getFooterDescription, getFooterFeatures, getFooterSupport, getFooterCopyright, getHeroVideoEnabled, getHeroVideoUrl, getHeroVideoTitle } = useHybridSiteSettingsStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -177,6 +178,21 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      
+      {/* Hero Video Section */}
+      {getHeroVideoEnabled() && getHeroVideoUrl() && (
+        <section className="py-16 bg-neutral-50 dark:bg-neutral-900/50">
+          <div className="container-app">
+            <div className="max-w-4xl mx-auto">
+              <VideoEmbed 
+                url={getHeroVideoUrl()}
+                title={getHeroVideoTitle() || 'Watch Our Demo'}
+                className="w-full"
+              />
+            </div>
+          </div>
+        </section>
+      )}
       
       {/* Features Section */}
       <section className="py-20 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm">

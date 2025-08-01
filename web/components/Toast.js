@@ -148,11 +148,15 @@ function ToastItem({ toast, onRemove }) {
       <div className="flex-1 min-w-0">
         {toast.title && (
           <p className="text-sm font-medium mb-1">
-            {toast.title}
+            {typeof toast.title === 'object' && toast.title instanceof Error 
+              ? toast.title.message 
+              : toast.title}
           </p>
         )}
         <p className="text-sm">
-          {toast.message}
+          {typeof toast.message === 'object' && toast.message instanceof Error 
+            ? toast.message.message 
+            : toast.message}
         </p>
         {toast.action && (
           <div className="mt-2">

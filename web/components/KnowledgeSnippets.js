@@ -74,17 +74,23 @@ export default function KnowledgeSnippets() {
         condition.signs.some(sign => sign.toLowerCase().includes(searchTerm.toLowerCase()));
     });
 
+  const getItemId = (item) => {
+    return item.id || item.title;
+  };
+
   const isFavorite = (item) => {
-    const itemId = item.id || item.title;
+    const itemId = getItemId(item);
     return favorites.some(fav => (typeof fav === 'string' ? fav === itemId : fav.id === itemId));
   };
 
   const toggleFavorite = (item) => {
-    const itemId = item.id || item.title;
+    const itemId = getItemId(item);
     if (isFavorite(item)) {
       removeFromFavorites(itemId);
     } else {
-      addToFavorites(item);
+      // Ensure the item has a consistent ID when adding to favorites
+      const itemWithId = { ...item, id: itemId };
+      addToFavorites(itemWithId);
     }
   };
 
@@ -262,9 +268,27 @@ export default function KnowledgeSnippets() {
                         <h4 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
                           {tip.title}
                         </h4>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 flex-wrap">
                           <span className="badge-primary">Week {tip.week}</span>
                           <span className="badge-secondary">{tip.category}</span>
+                          {tip.applicableBreeds && (
+                            <div className="flex items-center space-x-1">
+                              {tip.applicableBreeds.map((breed, breedIndex) => (
+                                <span 
+                                  key={breedIndex}
+                                  className={clsx(
+                                    'px-2 py-1 text-xs font-medium rounded-full',
+                                    tip.primaryBreed === breed 
+                                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-700'
+                                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                                  )}
+                                >
+                                  {breed}
+                                  {tip.primaryBreed === breed && ' (Primary)'}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <button
@@ -272,7 +296,9 @@ export default function KnowledgeSnippets() {
                           id: `week${tip.week}`,
                           title: tip.title,
                           content: tip.content,
-                          category: selectedTopic
+                          category: selectedTopic,
+                          applicableBreeds: tip.applicableBreeds,
+                          primaryBreed: tip.primaryBreed
                         })}
                         className={clsx(
                           'p-2 rounded-lg transition-colors',
@@ -349,14 +375,36 @@ export default function KnowledgeSnippets() {
                 <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
                   {seasonalTips.title}
                 </h3>
-                <span className="badge-secondary">Current Season</span>
+                <div className="flex items-center space-x-2 flex-wrap">
+                  <span className="badge-secondary">Current Season</span>
+                  {seasonalTips.applicableBreeds && (
+                    <div className="flex items-center space-x-1">
+                      {seasonalTips.applicableBreeds.map((breed, breedIndex) => (
+                        <span 
+                          key={breedIndex}
+                          className={clsx(
+                            'px-2 py-1 text-xs font-medium rounded-full',
+                            seasonalTips.primaryBreed === breed 
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-700'
+                              : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                          )}
+                        >
+                          {breed}
+                          {seasonalTips.primaryBreed === breed && ' (Primary)'}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => toggleFavorite({
                   id: `seasonal-${seasonalTips.title}`,
                   title: seasonalTips.title,
                   content: seasonalTips.solutions.join(', '),
-                  category: 'seasonal'
+                  category: 'seasonal',
+                  applicableBreeds: seasonalTips.applicableBreeds,
+                  primaryBreed: seasonalTips.primaryBreed
                 })}
                 className={clsx(
                   'p-2 rounded-lg transition-colors',
@@ -460,14 +508,36 @@ export default function KnowledgeSnippets() {
                     <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
                       {condition.title}
                     </h3>
-                    <span className="badge-error capitalize">{category}</span>
+                    <div className="flex items-center space-x-2 flex-wrap">
+                      <span className="badge-error capitalize">{category}</span>
+                      {condition.applicableBreeds && (
+                        <div className="flex items-center space-x-1">
+                          {condition.applicableBreeds.map((breed, breedIndex) => (
+                            <span 
+                              key={breedIndex}
+                              className={clsx(
+                                'px-2 py-1 text-xs font-medium rounded-full',
+                                condition.primaryBreed === breed 
+                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-700'
+                                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                              )}
+                            >
+                              {breed}
+                              {condition.primaryBreed === breed && ' (Primary)'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={() => toggleFavorite({
                       id: `emergency-${category}`,
                       title: condition.title,
                       content: condition.action,
-                      category: 'emergency'
+                      category: 'emergency',
+                      applicableBreeds: condition.applicableBreeds,
+                      primaryBreed: condition.primaryBreed
                     })}
                     className={clsx(
                       'p-2 rounded-lg transition-colors',
@@ -494,6 +564,15 @@ export default function KnowledgeSnippets() {
                         <div key={index} className="flex items-center text-sm text-neutral-700 dark:text-neutral-300">
                           <AlertTriangle className="w-4 h-4 mr-2 text-red-500" />
                           {sign}
+                        </div>
+                      ))}
+                      {condition.layerSigns && condition.layerSigns.map((sign, index) => (
+                        <div key={`layer-${index}`} className="flex items-center text-sm text-neutral-700 dark:text-neutral-300">
+                          <AlertTriangle className="w-4 h-4 mr-2 text-red-500" />
+                          {sign}
+                          <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
+                            Layer
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -549,7 +628,27 @@ export default function KnowledgeSnippets() {
                         <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
                           {favoriteItem.title}
                         </h3>
-                        <span className="badge-accent">{favoriteItem.category}</span>
+                        <div className="flex items-center space-x-2 flex-wrap">
+                          <span className="badge-accent">{favoriteItem.category}</span>
+                          {favoriteItem.applicableBreeds && (
+                            <div className="flex items-center space-x-1">
+                              {favoriteItem.applicableBreeds.map((breed, breedIndex) => (
+                                <span 
+                                  key={breedIndex}
+                                  className={clsx(
+                                    'px-2 py-1 text-xs font-medium rounded-full',
+                                    favoriteItem.primaryBreed === breed 
+                                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-700'
+                                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                                  )}
+                                >
+                                  {breed}
+                                  {favoriteItem.primaryBreed === breed && ' (Primary)'}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <button
                         onClick={() => removeFromFavorites(favoriteItem.id || favoriteItem.title)}

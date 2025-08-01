@@ -60,6 +60,9 @@ export default function SettingsPage() {
     footerCopyright: '',
     recommendedFeedsTitle: '',
     recommendedFeedsDescription: '',
+    heroVideoEnabled: false,
+    heroVideoUrl: '',
+    heroVideoTitle: '',
   });
 
   // Initialize global settings on component mount
@@ -83,6 +86,9 @@ export default function SettingsPage() {
         footerCopyright: globalSettings.footer.copyright || '',
         recommendedFeedsTitle: globalSettings.recommendedFeeds.title || '',
         recommendedFeedsDescription: globalSettings.recommendedFeeds.description || '',
+        heroVideoEnabled: globalSettings.heroVideo?.enabled || false,
+        heroVideoUrl: globalSettings.heroVideo?.url || '',
+        heroVideoTitle: globalSettings.heroVideo?.title || '',
       });
       setIsLoading(false);
     }
@@ -134,6 +140,11 @@ export default function SettingsPage() {
           title: formData.recommendedFeedsTitle,
           description: formData.recommendedFeedsDescription,
         },
+        heroVideo: {
+          enabled: formData.heroVideoEnabled,
+          url: formData.heroVideoUrl,
+          title: formData.heroVideoTitle,
+        },
       });
       toast.success('Settings saved successfully!');
     } catch (error) {
@@ -157,6 +168,9 @@ export default function SettingsPage() {
         footerCopyright: globalSettings.footer.copyright || '',
         recommendedFeedsTitle: globalSettings.recommendedFeeds.title || '',
         recommendedFeedsDescription: globalSettings.recommendedFeeds.description || '',
+        heroVideoEnabled: globalSettings.heroVideo?.enabled || false,
+        heroVideoUrl: globalSettings.heroVideo?.url || '',
+        heroVideoTitle: globalSettings.heroVideo?.title || '',
       });
     }
     toast.success('Settings reset to defaults successfully!');
@@ -454,6 +468,74 @@ export default function SettingsPage() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Video Settings */}
+                <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-5">
+                  <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
+                    <div className="w-2 h-2 bg-primary-500 rounded-full mr-3"></div>
+                    Hero Video Settings
+                  </h2>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        id="heroVideoEnabled"
+                        checked={formData.heroVideoEnabled}
+                        onChange={(e) => handleInputChange('heroVideoEnabled', e.target.checked)}
+                        className="w-4 h-4 text-primary-600 bg-white dark:bg-neutral-700 border-neutral-300 dark:border-neutral-600 rounded focus:ring-primary-500 focus:ring-2"
+                      />
+                      <label htmlFor="heroVideoEnabled" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                        Enable hero video
+                      </label>
+                    </div>
+                    
+                    {formData.heroVideoEnabled && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                            Video Title
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.heroVideoTitle}
+                            onChange={(e) => handleInputChange('heroVideoTitle', e.target.value)}
+                            className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 transition-colors"
+                            placeholder="Watch Our Demo"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                            Video URL
+                          </label>
+                          <input
+                            type="url"
+                            value={formData.heroVideoUrl}
+                            onChange={(e) => handleInputChange('heroVideoUrl', e.target.value)}
+                            className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 transition-colors"
+                            placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+                          />
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                            Supports YouTube, Vimeo, and direct video URLs. Video will appear below the hero section.
+                          </p>
+                        </div>
+                        
+                        {formData.heroVideoUrl && (
+                          <div className="bg-neutral-50 dark:bg-neutral-700/50 rounded-lg p-3">
+                            <p className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">Preview:</p>
+                            <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                              {formData.heroVideoTitle && (
+                                <div className="font-medium mb-1">{formData.heroVideoTitle}</div>
+                              )}
+                              <div className="truncate">{formData.heroVideoUrl}</div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
 

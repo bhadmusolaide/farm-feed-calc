@@ -144,7 +144,25 @@ export const useFeedStore = create(
         recommendedFeeds: [],
         localFeedMix: null,
         showResults: false
-      })
+      }),
+      
+      // Load saved result data into the store
+      updateFeedStore: (resultData) => {
+        set({
+          birdType: resultData.birdType,
+          breed: resultData.breed,
+          ageInDays: resultData.ageInDays,
+          quantity: resultData.quantity,
+          rearingStyle: resultData.rearingStyle,
+          targetWeight: resultData.targetWeight,
+          feedResults: resultData.feedResults,
+          feedingSchedule: resultData.feedingSchedule,
+          bestPractices: resultData.bestPractices || [],
+          recommendedFeeds: resultData.recommendedFeeds || [],
+          localFeedMix: resultData.localFeedMix,
+          showResults: true
+        });
+      }
     }),
     {
       name: 'feed-calculator-storage',

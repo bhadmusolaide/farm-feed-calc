@@ -29,6 +29,12 @@ const DEFAULT_SETTINGS = {
     title: 'Recommended Feeds',
     description: 'Browse our curated selection of quality feed brands'
   },
+  // Hero video settings
+  heroVideo: {
+    enabled: false,
+    url: '',
+    title: 'Watch Our Demo'
+  },
   // Cache-busting version for logo updates
   logoVersion: Date.now()
 };
@@ -250,13 +256,28 @@ export const useSiteSettingsStore = create(
         const state = get();
         return (state.globalSettings || DEFAULT_SETTINGS).recommendedFeeds.description;
       },
+      getHeroVideoEnabled: () => {
+        const state = get();
+        const settings = state.globalSettings || DEFAULT_SETTINGS;
+        return settings.heroVideo?.enabled || DEFAULT_SETTINGS.heroVideo.enabled;
+      },
+      getHeroVideoUrl: () => {
+        const state = get();
+        const settings = state.globalSettings || DEFAULT_SETTINGS;
+        return settings.heroVideo?.url || DEFAULT_SETTINGS.heroVideo.url;
+      },
+      getHeroVideoTitle: () => {
+        const state = get();
+        const settings = state.globalSettings || DEFAULT_SETTINGS;
+        return settings.heroVideo?.title || DEFAULT_SETTINGS.heroVideo.title;
+      },
 
       // Clear error
       clearError: () => set({ error: null })
     }),
     {
       name: 'site-settings-storage',
-      version: 2, // Increment version due to structure change
+      version: 3, // Increment version to add heroVideo property
       // Only persist the global settings, not loading states
       partialize: (state) => ({ globalSettings: state.globalSettings }),
       migrate: (persistedState, version) => {
@@ -266,6 +287,14 @@ export const useSiteSettingsStore = create(
           return {
             globalSettings: oldState.globalSettings || oldState.settings || DEFAULT_SETTINGS
           };
+        }
+        if (version < 3) {
+          // Add heroVideo property if missing
+          const currentState = persistedState;
+          if (currentState.globalSettings && !currentState.globalSettings.heroVideo) {
+            currentState.globalSettings.heroVideo = DEFAULT_SETTINGS.heroVideo;
+          }
+          return currentState;
         }
         return persistedState;
       }
