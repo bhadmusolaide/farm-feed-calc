@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Info, Thermometer, Clock, TrendingUp, DollarSign, Award, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import Header from '../../components/Header';
 
 const breedData = {
   broilers: {
@@ -155,27 +156,8 @@ export default function BreedComparisonPage() {
   const breeds = Object.keys(currentData);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800">
-      {/* Header */}
-      <header className="glass backdrop-blur-xl border-b border-white/20 dark:border-neutral-700/20 sticky top-0 z-50">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="btn-ghost p-2 interactive-scale">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-              <div>
-                <h1 className="font-display font-bold text-xl text-neutral-900 dark:text-neutral-100">
-                  Breed Comparison Guide
-                </h1>
-                <p className="text-xs text-neutral-600 dark:text-neutral-400">
-                  Compare popular poultry breeds for Nigerian farmers
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+    <>
+      <Header />
 
       <main className="container mx-auto px-4 py-8">
         {/* Introduction */}
@@ -486,6 +468,6 @@ export default function BreedComparisonPage() {
           </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }

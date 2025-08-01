@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSavedResultsStore } from '../lib/store';
+import { useHybridSavedResultsStore } from '../lib/hybridStore';
 import { Bell, X, Calendar, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -10,7 +10,7 @@ const AutoProgressionNotifications = () => {
     savedResults, 
     getAutoProgressionCalculations, 
     calculateNextDay 
-  } = useSavedResultsStore();
+  } = useHybridSavedResultsStore();
   
   const [notifications, setNotifications] = useState([]);
   const [dismissedNotifications, setDismissedNotifications] = useState(new Set());
@@ -100,7 +100,7 @@ const AutoProgressionNotifications = () => {
     // Update notifications every hour
     const interval = setInterval(generateNotifications, 60 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [savedResults, dismissedNotifications, getAutoProgressionCalculations, calculateNextDay]);
+  }, [savedResults, dismissedNotifications]);
 
   const dismissNotification = (notificationId) => {
     setDismissedNotifications(prev => new Set([...prev, notificationId]));

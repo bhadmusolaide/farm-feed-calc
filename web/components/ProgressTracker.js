@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSavedResultsStore } from '../lib/store';
+import { useHybridSavedResultsStore } from '../lib/hybridStore';
 import { TrendingUp, TrendingDown, BarChart3, Calendar, Target, Award } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const ProgressTracker = ({ calculationId }) => {
-  const { savedResults, calculateNextDay } = useSavedResultsStore();
+  const { savedResults, calculateNextDay } = useHybridSavedResultsStore();
   const [progressData, setProgressData] = useState(null);
   const [selectedMetric, setSelectedMetric] = useState('feed_efficiency');
 

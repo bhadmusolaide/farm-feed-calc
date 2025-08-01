@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { WEEKLY_KNOWLEDGE } from '../../shared/data/weeklyKnowledge.js';
+import { KNOWLEDGE_SNIPPETS, getWeeklyKnowledge } from '../../shared/data/knowledgeSnippets.js';
 import { db } from './database';
 import useFirebaseAuthStore from './firebaseAuthStore';
 
@@ -9,7 +9,8 @@ export const useEnhancedKnowledgeStore = create(
   persist(
     (set, get) => ({
       // State
-      weeklyKnowledge: WEEKLY_KNOWLEDGE,
+      weeklyKnowledge: KNOWLEDGE_SNIPPETS,
+      currentWeeklyKnowledge: null,
       favorites: [], // Local favorites
       userFavorites: [], // Favorites from database
       userNotes: [], // User notes from database
@@ -97,6 +98,26 @@ export const useEnhancedKnowledgeStore = create(
               set({ isSyncing: false, syncError: error.message });
             }
           }
+        }
+      },
+
+      // Add to favorites (for compatibility with components expecting this method)
+      addToFavorites: async (knowledgeId) => {
+        const { favorites, userFavorites } = get();
+        const isAlreadyFavorite = favorites.includes(knowledgeId) || userFavorites.includes(knowledgeId);
+        
+        if (!isAlreadyFavorite) {
+          await get().toggleFavorite(knowledgeId);
+        }
+      },
+
+      // Remove from favorites (for compatibility with components expecting this method)
+      removeFromFavorites: async (knowledgeId) => {
+        const { favorites, userFavorites } = get();
+        const isCurrentlyFavorite = favorites.includes(knowledgeId) || userFavorites.includes(knowledgeId);
+        
+        if (isCurrentlyFavorite) {
+          await get().toggleFavorite(knowledgeId);
         }
       },
 
@@ -290,6 +311,12 @@ export const useEnhancedKnowledgeStore = create(
         }
       },
 
+      // Load weekly knowledge
+      loadWeeklyKnowledge: (weekNumber) => {
+        const weeklyKnowledge = getWeeklyKnowledge(weekNumber || 1);
+        set({ currentWeeklyKnowledge: weeklyKnowledge });
+      },
+
       // Clear errors
       clearError: () => set({ error: null }),
       clearSyncError: () => set({ syncError: null })
@@ -309,12 +336,14 @@ export const useEnhancedKnowledgeStore = create(
 
 // Helper functions for knowledge management
 export const getKnowledgeCategories = () => {
-  const categories = [...new Set(WEEKLY_KNOWLEDGE.map(item => item.category).filter(Boolean))];
+  const knowledgeArray = Object.values(KNOWLEDGE_SNIPPETS);
+  const categories = [...new Set(knowledgeArray.map(item => item.category).filter(Boolean))];
   return categories.sort();
 };
 
 export const getKnowledgeTags = () => {
-  const tags = [...new Set(WEEKLY_KNOWLEDGE.flatMap(item => item.tags || []))];
+  const knowledgeArray = Object.values(KNOWLEDGE_SNIPPETS);
+  const tags = [...new Set(knowledgeArray.flatMap(item => item.tags || []))];
   return tags.sort();
 };
 

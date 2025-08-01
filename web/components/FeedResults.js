@@ -1,6 +1,6 @@
 'use client';
 
-import { useFeedStore, useSavedResultsStore } from '../lib/store';
+import { useHybridFeedStore, useHybridSavedResultsStore } from '../lib/hybridStore';
 import { Package, Clock, Lightbulb, Calculator, Copy, Check, Save, Thermometer, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import { clsx } from 'clsx';
@@ -11,8 +11,8 @@ import { calculateFeedCost, calculateExpectedWeight, getFCRReference } from '../
 import { calculateOptimalTemperature } from '../../shared/utils/temperatureCalculator';
 
 export default function FeedResults() {
-  const { feedResults, feedingSchedule, bestPractices, birdType, breed, ageInDays, quantity, rearingStyle, targetWeight } = useFeedStore();
-  const { saveResult } = useSavedResultsStore();
+  const { feedResults, feedingSchedule, bestPractices, birdType, breed, ageInDays, quantity, rearingStyle, targetWeight } = useHybridFeedStore();
+  const { saveResult } = useHybridSavedResultsStore();
   const { toast } = useToast();
   const [copiedSection, setCopiedSection] = useState(null);
   const [isSaving, setIsSaving] = useState(false);

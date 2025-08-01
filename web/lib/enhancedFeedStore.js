@@ -153,16 +153,21 @@ export const useEnhancedFeedStore = create(
           set({ isSyncing: true, syncError: null });
           const saved = await db.saveCalculation(calculationData);
           
-          // Add to local saved calculations
-          const savedCalculations = get().savedCalculations;
-          set({ 
-            savedCalculations: [{
-              id: saved.id,
-              ...calculationData,
-              createdAt: saved.createdAt
-            }, ...savedCalculations],
-            isSyncing: false
-          });
+          // Only add to local saved calculations if we got a valid ID
+          if (saved && saved.id) {
+            const savedCalculations = get().savedCalculations;
+            set({ 
+              savedCalculations: [{
+                id: saved.id,
+                ...calculationData,
+                createdAt: saved.createdAt
+              }, ...savedCalculations],
+              isSyncing: false
+            });
+          } else {
+            set({ isSyncing: false, syncError: 'Failed to save calculation - no ID returned' });
+            throw new Error('Failed to save calculation - no ID returned');
+          }
           
           return saved;
         } catch (error) {
@@ -182,8 +187,10 @@ export const useEnhancedFeedStore = create(
         try {
           set({ isSyncing: true, syncError: null });
           const calculations = await db.getUserCalculations();
+          // Filter out any calculations with null or undefined IDs
+          const validCalculations = calculations.filter(calc => calc && calc.id);
           set({ 
-            savedCalculations: calculations,
+            savedCalculations: validCalculations,
             isSyncing: false
           });
         } catch (error) {

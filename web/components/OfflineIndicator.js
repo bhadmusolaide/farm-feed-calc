@@ -1,6 +1,6 @@
 'use client';
 
-import { useOfflineStore } from '../lib/store';
+import { useOfflineStore } from '../lib/hybridStore';
 import { WifiOff } from 'lucide-react';
 
 function OfflineIndicator() {

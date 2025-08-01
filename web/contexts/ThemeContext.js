@@ -52,7 +52,8 @@ export function ThemeProvider({ children }) {
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    // Return null instead of throwing error to allow graceful fallback
+    return null;
   }
   return context;
 }

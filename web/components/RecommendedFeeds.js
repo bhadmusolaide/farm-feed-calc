@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFeedStore } from '../lib/store';
-import { useSiteSettingsStore } from '../lib/siteSettingsStore';
+import { useHybridFeedStore } from '../lib/hybridStore';
+import { useHybridSiteSettingsStore } from '../lib/hybridStore';
 import { useFeedManagementStore } from '../lib/feedManagementStore';
 import { getLocalFeedMix, calculateLocalFeedCost } from '../../shared/data/feedBrands.js';
 import { BookOpen, Package, MapPin, DollarSign, Info, Star, Filter, Search } from 'lucide-react';
@@ -12,8 +12,8 @@ import { LoadingWrapper } from './LoadingState';
 import { formatErrorForUser, logError } from '../../shared/utils/errorHandling';
 
 export default function RecommendedFeeds() {
-  const { birdType, ageInDays } = useFeedStore();
-  const { getRecommendedFeedsTitle, getRecommendedFeedsDescription } = useSiteSettingsStore();
+  const { birdType, ageInDays } = useHybridFeedStore();
+  const { getCurrency, getRecommendedFeedsTitle, getRecommendedFeedsDescription } = useHybridSiteSettingsStore();
   const { feeds, localMixes } = useFeedManagementStore();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState('commercial');

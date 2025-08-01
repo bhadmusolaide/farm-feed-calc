@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFeedStore, getAvailableBreeds, getTargetWeightOptions, getRearingStyleOptions } from '../lib/store';
+import { useHybridFeedStore } from '../lib/hybridStore';
+import { getAvailableBreeds, getTargetWeightOptions, getRearingStyleOptions } from '../lib/store';
 import { getBreedsWithImages } from '../lib/breedImages';
 import { Calculator, Clock, Users, Target, Zap, RotateCcw, Calendar } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -19,15 +20,17 @@ export default function FeedCalculator() {
     rearingStyle,
     targetWeight,
     isCalculating,
+    activeTab,
     setBirdType,
     setBreed,
     setAge,
     setQuantity,
     setRearingStyle,
     setTargetWeight,
+    setActiveTab,
     calculateFeedRequirements,
     resetForm,
-  } = useFeedStore();
+  } = useHybridFeedStore();
 
   const [ageInput, setAgeInput] = useState('days');
   const [ageWeeks, setAgeWeeks] = useState(Math.ceil(ageInDays / 7));
@@ -85,7 +88,7 @@ export default function FeedCalculator() {
       // Auto-scroll to results section
       setTimeout(() => {
         // First, switch to results tab if not already there
-        const { activeTab, setActiveTab } = useFeedStore.getState();
+        // activeTab and setActiveTab are already available from the hook
         if (activeTab !== 'results') {
           setActiveTab('results');
         }

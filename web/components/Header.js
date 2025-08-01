@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, X, Info, FileText } from 'lucide-react';
-import { useSiteSettingsStore } from '../lib/siteSettingsStore';
+import { useHybridSiteSettingsStore } from '../lib/hybridStore';
 import ThemeToggle from './ThemeToggle';
 import UserProfile from './UserProfile';
 
@@ -20,7 +20,7 @@ const ChickenIcon = () => (
 export default function Header() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const { getSiteTitle, getSiteDescription } = useSiteSettingsStore();
+  const { getSiteTitle, getSiteDescription } = useHybridSiteSettingsStore();
 
   return (
     <>
@@ -29,7 +29,11 @@ export default function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo and Title */}
             <div className="flex items-center space-x-3">
-              <div className="flex-shrink-0 interactive-scale">
+              <div 
+                className="flex-shrink-0 interactive-scale cursor-pointer"
+                onClick={() => window.location.reload()}
+                title="Home"
+              >
                 <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg animate-glow">
                   <img 
                     src="/omzo_farmz_logo.png" 

@@ -1,36 +1,19 @@
 'use client';
 
-import { useSavedResultsStore, useFeedStore } from '../lib/store';
+import { useHybridSavedResultsStore, useHybridFeedStore } from '../lib/hybridStore';
 import { Package, Calendar, Trash2, Eye, Edit2, Check, X } from 'lucide-react';
 import { useState } from 'react';
 import { clsx } from 'clsx';
 
 export default function SavedResults() {
-  const { savedResults, deleteResult, updateResultName } = useSavedResultsStore();
-  const { setActiveTab } = useFeedStore();
+  const { savedResults, deleteResult, updateResultName, clearAllResults } = useHybridSavedResultsStore();
+  const { setActiveTab, updateFeedStore } = useHybridFeedStore();
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
 
   const handleLoadResult = (result) => {
-    // Load the saved result into the main store
-    const { 
-      birdType, breed, ageInDays, quantity, rearingStyle, targetWeight,
-      feedResults, feedingSchedule, bestPractices 
-    } = result;
-    
-    // Update the feed store with saved data
-    useFeedStore.setState({
-      birdType,
-      breed,
-      ageInDays,
-      quantity,
-      rearingStyle,
-      targetWeight,
-      feedResults,
-      feedingSchedule,
-      bestPractices,
-      showResults: true
-    });
+    // Load the saved result into the main store using the hybrid store method
+    updateFeedStore(result);
     
     // Navigate to results tab
     setActiveTab('results');
@@ -104,7 +87,7 @@ export default function SavedResults() {
 
       {/* Saved Results List */}
       <div className="space-y-4">
-        {savedResults.map((result) => (
+        {savedResults.filter(result => result && result.id).map((result) => (
           <div key={result.id} className="card p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
@@ -220,7 +203,7 @@ export default function SavedResults() {
           <button
             onClick={() => {
               if (confirm('Are you sure you want to delete all saved results? This action cannot be undone.')) {
-                useSavedResultsStore.getState().clearAllResults();
+                clearAllResults();
               }
             }}
             className="btn-outline text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20"

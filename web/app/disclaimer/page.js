@@ -2,23 +2,15 @@
 
 import { ArrowLeft, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Header from '../../components/Header';
 
 export default function Disclaimer() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-accent-50 dark:from-neutral-900 dark:to-neutral-800">
+    <>
+      <Header />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Header */}
-        <div className="flex items-center mb-8">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors mr-4"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back
-          </button>
-        </div>
 
         {/* Main Content */}
         <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-soft border border-neutral-200 dark:border-neutral-700 p-8">
@@ -108,6 +100,6 @@ export default function Disclaimer() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

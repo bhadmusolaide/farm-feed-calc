@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Upload, X, Eye, EyeOff, Plus, Edit, Trash2, RotateCcw, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useSiteSettingsStore } from '../../lib/siteSettingsStore';
+import { useHybridSiteSettingsStore } from '../../lib/hybridStore';
 import { useFeedManagementStore } from '../../lib/feedManagementStore';
 import useFirebaseAuthStore from '../../lib/firebaseAuthStore';
 import { useToast } from '../../components/Toast';
@@ -23,7 +23,7 @@ export default function SettingsPage() {
     resetToDefaults, 
     loadGlobalSettings,
     initialize 
-  } = useSiteSettingsStore();
+  } = useHybridSiteSettingsStore();
   const { 
     feeds, 
     localMixes, 

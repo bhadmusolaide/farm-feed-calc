@@ -1,18 +1,8 @@
 import { 
-  saveCalculation, 
-  getUserCalculations, 
-  deleteCalculation,
-  addCustomFeed,
-  getUserCustomFeeds,
-  updateCustomFeed,
-  deleteCustomFeed,
-  addLocalMix,
-  getUserLocalMixes,
-  updateLocalMix,
-  deleteLocalMix,
-  getUserProfile,
-  updateUserProfile,
-  saveUserProfile
+  feedCalculationsDB,
+  customFeedsDB,
+  customLocalMixesDB,
+  userProfilesDB
 } from './firebaseDatabase';
 import useFirebaseAuthStore from './firebaseAuthStore';
 
@@ -32,7 +22,8 @@ export class DatabaseService {
     if (!this.isAvailable()) return null;
     
     try {
-      return await getUserProfile(userId);
+      const result = await userProfilesDB.get(userId);
+      return result.data;
     } catch (error) {
       console.error('Error fetching user profile:', error);
       return null;
@@ -44,7 +35,9 @@ export class DatabaseService {
     if (!this.isAvailable()) throw new Error('Database not available');
     
     try {
-      return await saveCalculation(calculationData);
+      const { user } = useFirebaseAuthStore.getState();
+      if (!user) throw new Error('User not authenticated');
+      return await feedCalculationsDB.save(user.uid, calculationData);
     } catch (error) {
       console.error('Error saving calculation:', error);
       throw error;
@@ -55,7 +48,10 @@ export class DatabaseService {
     if (!this.isAvailable()) return [];
     
     try {
-      return await getUserCalculations();
+      const { user } = useFirebaseAuthStore.getState();
+      if (!user) return [];
+      const result = await feedCalculationsDB.getByUser(user.uid);
+      return result.data || [];
     } catch (error) {
       console.error('Error fetching calculations:', error);
       return [];
@@ -66,9 +62,20 @@ export class DatabaseService {
     if (!this.isAvailable()) throw new Error('Database not available');
     
     try {
-      return await deleteCalculation(calculationId);
+      return await feedCalculationsDB.delete(calculationId);
     } catch (error) {
       console.error('Error deleting calculation:', error);
+      throw error;
+    }
+  }
+
+  async updateCalculation(calculationId, updates) {
+    if (!this.isAvailable()) throw new Error('Database not available');
+    
+    try {
+      return await feedCalculationsDB.update(calculationId, updates);
+    } catch (error) {
+      console.error('Error updating calculation:', error);
       throw error;
     }
   }
@@ -78,7 +85,9 @@ export class DatabaseService {
     if (!this.isAvailable()) throw new Error('Database not available');
     
     try {
-      return await addCustomFeed(feedData);
+      const { user } = useFirebaseAuthStore.getState();
+      if (!user) throw new Error('User not authenticated');
+      return await customFeedsDB.save(user.uid, feedData);
     } catch (error) {
       console.error('Error adding custom feed:', error);
       throw error;
@@ -89,7 +98,10 @@ export class DatabaseService {
     if (!this.isAvailable()) return [];
     
     try {
-      return await getUserCustomFeeds();
+      const { user } = useFirebaseAuthStore.getState();
+      if (!user) return [];
+      const result = await customFeedsDB.getByUser(user.uid);
+      return result.data || [];
     } catch (error) {
       console.error('Error fetching custom feeds:', error);
       return [];
@@ -100,7 +112,7 @@ export class DatabaseService {
     if (!this.isAvailable()) throw new Error('Database not available');
     
     try {
-      return await updateCustomFeed(feedId, changes);
+      return await customFeedsDB.update(feedId, changes);
     } catch (error) {
       console.error('Error updating custom feed:', error);
       throw error;
@@ -111,7 +123,7 @@ export class DatabaseService {
     if (!this.isAvailable()) throw new Error('Database not available');
     
     try {
-      return await deleteCustomFeed(feedId);
+      return await customFeedsDB.delete(feedId);
     } catch (error) {
       console.error('Error deleting custom feed:', error);
       throw error;
@@ -123,7 +135,9 @@ export class DatabaseService {
     if (!this.isAvailable()) throw new Error('Database not available');
     
     try {
-      return await addLocalMix(mixData);
+      const { user } = useFirebaseAuthStore.getState();
+      if (!user) throw new Error('User not authenticated');
+      return await customLocalMixesDB.save(user.uid, mixData);
     } catch (error) {
       console.error('Error adding local mix:', error);
       throw error;
@@ -134,7 +148,10 @@ export class DatabaseService {
     if (!this.isAvailable()) return [];
     
     try {
-      return await getUserLocalMixes();
+      const { user } = useFirebaseAuthStore.getState();
+      if (!user) return [];
+      const result = await customLocalMixesDB.getByUser(user.uid);
+      return result.data || [];
     } catch (error) {
       console.error('Error fetching local mixes:', error);
       return [];
@@ -145,7 +162,7 @@ export class DatabaseService {
     if (!this.isAvailable()) throw new Error('Database not available');
     
     try {
-      return await updateLocalMix(mixId, changes);
+      return await customLocalMixesDB.update(mixId, changes);
     } catch (error) {
       console.error('Error updating local mix:', error);
       throw error;
@@ -156,7 +173,7 @@ export class DatabaseService {
     if (!this.isAvailable()) throw new Error('Database not available');
     
     try {
-      return await deleteLocalMix(mixId);
+      return await customLocalMixesDB.delete(mixId);
     } catch (error) {
       console.error('Error deleting local mix:', error);
       throw error;
@@ -168,7 +185,9 @@ export class DatabaseService {
     if (!this.isAvailable()) throw new Error('Database not available');
     
     try {
-      return await saveUserProfile({ preferences });
+      const { user } = useFirebaseAuthStore.getState();
+      if (!user) throw new Error('User not authenticated');
+      return await userProfilesDB.update(user.uid, { preferences });
     } catch (error) {
       console.error('Error saving user preferences:', error);
       throw error;
