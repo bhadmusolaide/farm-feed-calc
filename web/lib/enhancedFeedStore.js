@@ -144,9 +144,9 @@ export const useEnhancedFeedStore = create(
       // Save calculation to database
       saveCalculation: async (calculationData) => {
         const { user } = useFirebaseAuthStore.getState();
-    if (!user) {
-      console.log('Cannot save calculation: user not authenticated');
-          return;
+        if (!user) {
+          console.log('Cannot save calculation: user not authenticated');
+          throw new Error('User not authenticated');
         }
         
         try {
@@ -169,7 +169,7 @@ export const useEnhancedFeedStore = create(
             throw new Error('Failed to save calculation - no ID returned');
           }
           
-          return saved;
+          return saved.id;
         } catch (error) {
           console.error('Error saving calculation:', error);
           set({ isSyncing: false, syncError: error.message });

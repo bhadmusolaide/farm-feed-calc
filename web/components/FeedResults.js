@@ -84,16 +84,22 @@ export default function FeedResults() {
     };
     
     try {
-      const savedId = saveResult(resultData, calculationName || undefined, autoProgression);
+      const savedId = await saveResult(resultData, calculationName || undefined, autoProgression);
       
-      // Show success feedback
-      setCopiedSection('saved');
-      setTimeout(() => setCopiedSection(null), 2000);
-      
-      if (autoProgression) {
-        toast.success('Results saved with auto-progression enabled!');
+      // Only show success if we actually got a saved ID
+      if (savedId) {
+        // Show success feedback
+        setCopiedSection('saved');
+        setTimeout(() => setCopiedSection(null), 2000);
+        
+        if (autoProgression) {
+          toast.success('Results saved with auto-progression enabled!');
+        } else {
+          toast.success('Results saved successfully!');
+        }
       } else {
-        toast.success('Results saved successfully!');
+        toast.error('Failed to save results. Please try again.');
+        return; // Don't reset dialog state if save failed
       }
       
       // Reset dialog state
