@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Calculator, TrendingUp, Shield, Users, Star, CheckCircle, Play, ChevronDown } from 'lucide-react';
+import { ArrowRight, Calculator, TrendingUp, Shield, Users, Star, CheckCircle, ChevronDown } from 'lucide-react';
 import Header from '../components/Header';
 import OfflineIndicator from '../components/OfflineIndicator';
 import VideoEmbed from '../components/VideoEmbed';
@@ -154,10 +154,7 @@ export default function LandingPage() {
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               
-              <button className="flex items-center text-neutral-600 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Play className="mr-2 h-5 w-5" />
-                Watch Demo (2 min)
-              </button>
+
             </div>
             
             {/* Social Proof */}

@@ -2,14 +2,21 @@
 
 import { useHybridSavedResultsStore, useHybridFeedStore } from '../lib/hybridStore';
 import { Package, Calendar, Trash2, Eye, Edit2, Check, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 
 export default function SavedResults() {
-  const { savedResults, deleteResult, updateResultName, clearAllResults } = useHybridSavedResultsStore();
+  const { savedResults, deleteResult, updateResultName, clearAllResults, loadSavedResults } = useHybridSavedResultsStore();
   const { setActiveTab, updateFeedStore } = useHybridFeedStore();
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
+
+  // Load saved results when component mounts
+  useEffect(() => {
+    if (loadSavedResults) {
+      loadSavedResults();
+    }
+  }, [loadSavedResults]);
 
   const handleLoadResult = (result) => {
     // Load the saved result into the main store using the hybrid store method

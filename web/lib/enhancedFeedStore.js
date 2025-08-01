@@ -160,7 +160,7 @@ export const useEnhancedFeedStore = create(
               savedCalculations: [{
                 id: saved.id,
                 ...calculationData,
-                createdAt: saved.createdAt
+                createdAt: saved.createdAt || new Date().toISOString()
               }, ...savedCalculations],
               isSyncing: false
             });
