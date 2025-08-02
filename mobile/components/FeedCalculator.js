@@ -9,7 +9,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import ThemeToggle from './ThemeToggle';
 import { useToast } from './Toast';
 import { LoadingButton } from './LoadingState';
-import { validateFormData, formatUserFriendlyError } from '../../shared/utils/errorHandling';
+import { validateFormData, formatErrorForUser } from '../../shared/utils/errorHandling';
 
 export default function FeedCalculator() {
   const { theme } = useTheme();
@@ -93,7 +93,7 @@ export default function FeedCalculator() {
       toast.success('Feed requirements calculated successfully!');
       
     } catch (error) {
-      const friendlyError = formatUserFriendlyError(error);
+      const friendlyError = formatErrorForUser(error);
       toast.error(friendlyError.message, {
         title: friendlyError.title,
         duration: 7000

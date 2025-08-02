@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { calculateFeed, generateFeedingSchedule, generateBestPractices } from '../../shared/utils/feedCalculator.js';
 import { getRecommendedFeeds, getLocalFeedMix, FEED_BRANDS, LOCAL_FEED_MIXES } from '../../shared/data/feedBrands.js';
 import { getWeeklyKnowledge } from '../../shared/data/knowledgeSnippets.js';
-import { logError, retryWithBackoff, safeAsync } from '../../shared/utils/errorHandling';
+import { logError } from '../../shared/utils/errorHandling';
 import { PersistenceStrategyFactory } from './persistenceStrategies';
 import { db } from './database';
 import useFirebaseAuthStore from './firebaseAuthStore';

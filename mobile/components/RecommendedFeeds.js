@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFeedStore } from '../lib/store';
 import { FEED_BRANDS, LOCAL_FEED_MIXES, getRecommendedFeeds, getLocalFeedMix, calculateLocalFeedCost } from '../lib/feedBrands.js';
 import { useToast } from './Toast';
-import { formatUserFriendlyError, logError } from '../../shared/utils/errorHandling';
+import { formatErrorForUser, logError } from '../../shared/utils/errorHandling';
 
 export default function RecommendedFeeds() {
   const { birdType, ageInDays } = useFeedStore();
@@ -21,9 +21,10 @@ export default function RecommendedFeeds() {
     } catch (err) {
       logError(err, 'Failed to get recommended feeds', { birdType, ageInDays });
       setError(err);
+      const friendly = formatErrorForUser(err);
       addToast({
         type: 'error',
-        message: formatUserFriendlyError(err)
+        message: friendly.message
       });
       return [];
     }
