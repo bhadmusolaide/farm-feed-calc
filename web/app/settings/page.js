@@ -69,6 +69,8 @@ export default function SettingsPage() {
     const initializeSettings = async () => {
       try {
         await initialize();
+        // Load global settings from Firebase for site configuration
+        await loadGlobalSettings();
       } catch (err) {
         // Swallow initialize errors, we'll fall back to defaults
         console.error('initialize() failed, falling back to defaults', err);
