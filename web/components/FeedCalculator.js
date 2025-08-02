@@ -18,6 +18,7 @@ export default function FeedCalculator() {
     quantity,
     rearingStyle,
     targetWeight,
+    feedingSystem,
     isCalculating,
     activeTab,
     setBirdType,
@@ -26,6 +27,7 @@ export default function FeedCalculator() {
     setQuantity,
     setRearingStyle,
     setTargetWeight,
+    setFeedingSystem,
     setActiveTab,
     calculateFeedRequirements,
     resetForm,
@@ -40,7 +42,7 @@ export default function FeedCalculator() {
 
   const availableBreeds = getAvailableBreeds(birdType);
   const breedsWithImages = getBreedsWithImages(birdType);
-  const targetWeightOptions = getTargetWeightOptions();
+  const targetWeightOptions = getTargetWeightOptions(breed);
   const rearingStyleOptions = getRearingStyleOptions();
 
   const handleAgeChange = (value, unit) => {
@@ -394,6 +396,49 @@ export default function FeedCalculator() {
               </div>
             </div>
           )}
+
+          {/* Feeding System */}
+          <div>
+            <label className="label-lg">
+              <Target className="w-5 h-5 inline mr-2" />
+              Feeding System
+            </label>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setFeedingSystem('2-phase')}
+                className={clsx(
+                  'w-full p-4 rounded-xl border-2 text-left transition-all duration-200 touch-target',
+                  {
+                    'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-900 dark:text-primary-100': feedingSystem === '2-phase',
+                    'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600': feedingSystem !== '2-phase',
+                  }
+                )}
+              >
+                <div className="font-medium">2-Phase System (Nigeria-Standard)</div>
+                <div className="text-sm text-neutral-500 mt-1">
+                  Starter feed (0-5 weeks) → Finisher feed (5+ weeks). Cost-effective for 6-7 week production cycles. Commonly used by Nigerian farmers.
+                </div>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setFeedingSystem('3-phase')}
+                className={clsx(
+                  'w-full p-4 rounded-xl border-2 text-left transition-all duration-200 touch-target',
+                  {
+                    'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-900 dark:text-primary-100': feedingSystem === '3-phase',
+                    'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600': feedingSystem !== '3-phase',
+                  }
+                )}
+              >
+                <div className="font-medium">3-Phase System (International)</div>
+                <div className="text-sm text-neutral-500 mt-1">
+                  Starter feed (0-4 weeks) → Grower feed (4-6 weeks) → Finisher feed (6+ weeks). Optimized nutrition for longer production cycles.
+                </div>
+              </button>
+            </div>
+          </div>
 
           {/* Action Buttons */}
             <div className="pt-4 space-y-3">

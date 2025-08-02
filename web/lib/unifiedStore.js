@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { calculateFeed, generateFeedingSchedule, generateBestPractices } from '../../shared/utils/feedCalculator.js';
+import { calculateFeed, generateFeedingSchedule, generateBestPractices, getFeedType, getProtein, BIRD_BREEDS } from '../../shared/utils/feedCalculator.js';
 import { getRecommendedFeeds, getLocalFeedMix, FEED_BRANDS, LOCAL_FEED_MIXES } from '../../shared/data/feedBrands.js';
 import { getWeeklyKnowledge } from '../../shared/data/knowledgeSnippets.js';
 import { logError } from '../../shared/utils/errorHandling';
@@ -30,11 +30,12 @@ export const useUnifiedStore = create(
       return {
         // Form inputs
         birdType: 'broiler',
-        breed: 'Arbor Acres',
+        breed: BIRD_BREEDS.broiler ? Object.keys(BIRD_BREEDS.broiler)[0] : 'Arbor Acres',
         ageInDays: 28,
         quantity: 50,
         rearingStyle: 'commercial',
         targetWeight: 'medium',
+        feedingSystem: '2-phase', // Default to Nigeria-Standard
         
         // Calculation results
         feedResults: null,
@@ -85,11 +86,10 @@ export const useUnifiedStore = create(
         setBirdType: (birdType) => {
           set({ birdType });
           // Reset breed when bird type changes
-          const breeds = {
-            broiler: ['Arbor Acres', 'Ross 308', 'Cobb 500'],
-            layer: ['ISA Brown', 'Lohmann Brown', 'Hy-Line Brown']
-          };
-          set({ breed: breeds[birdType][0] });
+          const availableBreeds = BIRD_BREEDS[birdType] ? Object.keys(BIRD_BREEDS[birdType]) : [];
+          if (availableBreeds.length > 0) {
+            set({ breed: availableBreeds[0] });
+          }
         },
         
         setBreed: (breed) => set({ breed }),
@@ -97,17 +97,20 @@ export const useUnifiedStore = create(
         setQuantity: (quantity) => set({ quantity }),
         setRearingStyle: (rearingStyle) => set({ rearingStyle }),
         setTargetWeight: (targetWeight) => set({ targetWeight }),
+        setFeedingSystem: (feedingSystem) => set({ feedingSystem }),
         setActiveTab: (activeTab) => set({ activeTab }),
 
         // Reset form inputs to defaults
         resetForm: () => {
+          const defaultBreed = BIRD_BREEDS.broiler ? Object.keys(BIRD_BREEDS.broiler)[0] : 'Arbor Acres';
           set({
             birdType: 'broiler',
-            breed: 'Arbor Acres',
+            breed: defaultBreed,
             ageInDays: 28,
             quantity: 50,
             rearingStyle: 'commercial',
             targetWeight: 'medium',
+            feedingSystem: '2-phase',
             showResults: false,
             activeTab: 'calculator'
           });
@@ -129,7 +132,8 @@ export const useUnifiedStore = create(
               ageInDays: state.ageInDays,
               quantity: state.quantity,
               rearingStyle: state.rearingStyle,
-              targetWeight: state.targetWeight
+              targetWeight: state.targetWeight,
+              feedingSystem: state.feedingSystem
             });
             
             // Generate feeding schedule
@@ -353,7 +357,8 @@ export const useUnifiedStore = create(
               ageInDays: currentAge,
               quantity: calculation.currentQuantity || calculation.quantity,
               rearingStyle: calculation.rearingStyle,
-              targetWeight: calculation.targetWeight
+              targetWeight: calculation.targetWeight,
+              feedingSystem: calculation.feedingSystem || '2-phase'
             });
             
             return {
@@ -363,6 +368,8 @@ export const useUnifiedStore = create(
               calculatedFor: new Date().toISOString().split('T')[0],
               totalFeedKg: feedResults.total.grams / 1000,
               feedPerBirdGrams: feedResults.perBird.grams,
+              feedType: getFeedType(calculation.birdType, currentAge, calculation.feedingSystem || '2-phase'),
+              protein: getProtein(calculation.birdType, currentAge, calculation.feedingSystem || '2-phase'),
               mortalityRate: calculation.mortalityLog?.length || 0
             };
           } catch (error) {
@@ -853,6 +860,7 @@ export const useUnifiedStore = create(
         quantity: state.quantity,
         rearingStyle: state.rearingStyle,
         targetWeight: state.targetWeight,
+        feedingSystem: state.feedingSystem,
         activeTab: state.activeTab
       })
     }
@@ -861,22 +869,48 @@ export const useUnifiedStore = create(
 
 // Export helper functions for backward compatibility
 export const getAvailableBreeds = (birdType) => {
-  const breeds = {
-    broiler: ['Arbor Acres', 'Ross 308', 'Cobb 500'],
-    layer: ['ISA Brown', 'Lohmann Brown', 'Hy-Line Brown']
-  };
-  return breeds[birdType] || [];
+  if (BIRD_BREEDS[birdType]) {
+    return Object.keys(BIRD_BREEDS[birdType]);
+  }
+  return [];
 };
 
-export const getTargetWeightOptions = () => [
-  { value: 'light', label: 'Light (1.5-2.0 kg)' },
-  { value: 'medium', label: 'Medium (2.0-2.5 kg)' },
-  { value: 'heavy', label: 'Heavy (2.5+ kg)' }
-];
+export const getTargetWeightOptions = (breed) => {
+  
+  const targetWeightLabels = {
+    low: '1.6kg @ 6 weeks (Low feed plan)',
+    medium: '1.8kg @ 6 weeks (Medium feed plan)',
+    aggressive: '2.2kg+ @ 6 weeks (Aggressive feed plan)',
+    premium: '2.5kg @ 6 weeks (Premium feed plan)'
+  };
+  
+  // For broiler breeds, return breed-specific target weights
+  if (breed && BIRD_BREEDS.broiler && BIRD_BREEDS.broiler[breed]) {
+    const breedData = BIRD_BREEDS.broiler[breed];
+    if (breedData.targetWeights) {
+      return Object.entries(breedData.targetWeights).map(([key, data]) => ({
+        value: key,
+        label: targetWeightLabels[key] || `${data.weight}kg @ 6 weeks (${key} plan)`,
+        weight: data.weight,
+        feedMultiplier: data.feedMultiplier,
+        description: key === 'low' ? 'Conservative growth target' :
+                    key === 'medium' ? 'Standard growth target' :
+                    key === 'aggressive' ? 'High growth target' :
+                    key === 'premium' ? 'Maximum growth target' : 'Custom plan'
+      }));
+    }
+  }
+  
+  // Default fallback for layers or when breed not specified
+  return [
+    { value: 'low', label: '1.6kg @ 6 weeks (Low feed plan)', weight: 1.6, feedMultiplier: 0.85, description: 'Conservative growth target' },
+    { value: 'medium', label: '1.8kg @ 6 weeks (Medium feed plan)', weight: 1.8, feedMultiplier: 1.0, description: 'Standard growth target' },
+    { value: 'aggressive', label: '2.2kg+ @ 6 weeks (Aggressive feed plan)', weight: 2.2, feedMultiplier: 1.25, description: 'High growth target' },
+    { value: 'premium', label: '2.5kg @ 6 weeks (Premium feed plan)', weight: 2.5, feedMultiplier: 1.4, description: 'Maximum growth target' }
+  ];
+};
 
 export const getRearingStyleOptions = () => [
-  { value: 'commercial', label: 'Commercial', description: 'Intensive setup with controlled housing and formulated feeds' },
-  { value: 'free-range', label: 'Free Range', description: 'Outdoor access with partial foraging plus supplemental feed' },
-  { value: 'organic', label: 'Organic', description: 'Certified organic feed and welfare standards, no antibiotics' },
-  { value: 'backyard', label: 'Backyard', description: 'Small-scale, low infrastructure, irregular feeding and scavenging' }
+  { value: 'backyard', label: 'Backyard (≤10 birds)', description: 'Small-scale, less controlled environment' },
+  { value: 'commercial', label: 'Commercial (>10 birds)', description: 'Larger scale, controlled environment' }
 ];
