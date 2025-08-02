@@ -153,3 +153,11 @@ jest-coverage/
 test-results/
 playwright-report/
 playwright/.cache/
+# Firebase admin service accounts
+web/*.json
+
+# Firebase admin service accounts
+web/*.json
+
+# Firebase admin service accounts
+omzo-feed-calc-firebase-adminsdk-*.json

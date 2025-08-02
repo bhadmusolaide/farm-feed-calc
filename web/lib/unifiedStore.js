@@ -705,11 +705,27 @@ export const useUnifiedStore = create(
           return (state.globalSettings || defaultSettings).heroVideo.title;
         },
 
-        // Global settings management (for backward compatibility)
+        // Global settings management (fetch from Firestore)
         loadGlobalSettings: async () => {
           try {
-            // For now, just use default settings
-            // This can be enhanced later to load from a database
+            // indicate loading state for settings
+            set({ isLoadingGlobal: true, error: null });
+            
+            // Lazy import to avoid SSR issues
+            const { doc, getDoc, setDoc } = await import('firebase/firestore');
+            const { db } = await import('./firebase');
+            const settingsDocRef = doc(db, 'global_settings', 'site');
+
+            // Attempt to read settings
+            const snap = await getDoc(settingsDocRef);
+
+            if (snap.exists()) {
+              const data = snap.data();
+              set({ globalSettings: data, isLoadingGlobal: false, error: null });
+              return data;
+            }
+
+            // If not found, seed defaults (first-time bootstrap)
             const defaultSettings = {
               siteTitle: 'Feed Calculator by Omzo Farmz',
               siteDescription: 'For Nigerian Farmers',
@@ -742,37 +758,53 @@ export const useUnifiedStore = create(
               },
               logoVersion: Date.now()
             };
-            
-            set({ globalSettings: defaultSettings });
+
+            // Seed Firestore then update state
+            await setDoc(settingsDocRef, defaultSettings, { merge: true });
+            set({ globalSettings: defaultSettings, isLoadingGlobal: false, error: null });
             return defaultSettings;
           } catch (error) {
             console.error('Error loading global settings:', error);
+            set({ isLoadingGlobal: false, error: error?.message || 'Failed to load settings' });
             return null;
           }
         },
 
         updateSettings: async (newSettings) => {
           try {
+            set({ isLoadingGlobal: true, error: null });
+
+            // Merge with existing in-memory settings
             const currentSettings = get().globalSettings || {};
             const updatedSettings = { ...currentSettings, ...newSettings };
-            set({ globalSettings: updatedSettings });
-            
-            // Also update user settings in the store
+
+            // Persist to Firestore
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { db } = await import('./firebase');
+            const settingsDocRef = doc(db, 'global_settings', 'site');
+            await setDoc(settingsDocRef, updatedSettings, { merge: true });
+
+            // Reflect in store
+            set({ globalSettings: updatedSettings, isLoadingGlobal: false });
+
+            // Also update user settings in the store (kept for backward compatibility)
             const currentUserSettings = get().settings || {};
             const updatedUserSettings = { ...currentUserSettings, ...newSettings };
             set({ settings: updatedUserSettings });
-            
+
             return updatedSettings;
           } catch (error) {
             console.error('Error updating settings:', error);
+            set({ isLoadingGlobal: false, error: error?.message || 'Failed to update settings' });
             throw error;
           }
         },
 
         resetToDefaults: async () => {
           try {
-            await get().loadGlobalSettings();
-            return get().globalSettings;
+            // Re-seed defaults into Firestore by calling loadGlobalSettings (will seed if missing)
+            const seeded = await get().loadGlobalSettings();
+            return seeded || get().globalSettings;
           } catch (error) {
             console.error('Error resetting to defaults:', error);
             throw error;
