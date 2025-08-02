@@ -227,6 +227,51 @@ export function calculatePerformanceBenchmark(params) {
 }
 
 /**
+ * Get feed type/stage based on bird type, age, and feeding system
+ * @param {string} birdType - 'broiler' or 'layer'
+ * @param {number} ageInDays - Age of birds in days
+ * @param {string} feedingSystem - '2-phase' (Nigeria-Standard) or '3-phase' (International)
+ * @returns {string} Feed type: 'starter', 'grower', 'finisher', or 'layer'
+ */
+export function getFeedType(birdType, ageInDays, feedingSystem = '2-phase') {
+  if (birdType === 'layer') {
+    return ageInDays < 126 ? (ageInDays <= 28 ? 'starter' : 'grower') : 'layer';
+  } else {
+    // Broiler feeding systems
+    if (feedingSystem === '2-phase') {
+      // Nigeria-Standard: Starter (0-5 weeks) → Finisher (5+ weeks)
+      return ageInDays <= 35 ? 'starter' : 'finisher';
+    } else {
+      // International 3-phase: Starter → Grower → Finisher
+      if (ageInDays <= 28) return 'starter';
+      else if (ageInDays <= 42) return 'grower';
+      else return 'finisher';
+    }
+  }
+}
+
+/**
+ * Get protein percentage based on bird type, age, and feeding system
+ * @param {string} birdType - 'broiler' or 'layer'
+ * @param {number} ageInDays - Age of birds in days
+ * @param {string} feedingSystem - '2-phase' (Nigeria-Standard) or '3-phase' (International)
+ * @returns {number} Protein percentage
+ */
+export function getProtein(birdType, ageInDays, feedingSystem = '2-phase') {
+  const feedType = getFeedType(birdType, ageInDays, feedingSystem);
+  
+  // Standard protein percentages based on feed type
+  const proteinLevels = {
+    starter: 22,
+    grower: 19,
+    finisher: 17,
+    layer: 16
+  };
+  
+  return proteinLevels[feedType] || 16;
+}
+
+/**
  * Calculate daily feed requirements for birds with environmental adjustments
  * @param {Object} params - Calculation parameters
  * @param {string} params.birdType - 'broiler' or 'layer'
@@ -235,6 +280,7 @@ export function calculatePerformanceBenchmark(params) {
  * @param {number} params.quantity - Number of birds
  * @param {string} params.rearingStyle - 'backyard' or 'commercial'
  * @param {string} params.targetWeight - 'low', 'medium', 'aggressive' (broilers only)
+ * @param {string} params.feedingSystem - '2-phase' (Nigeria-Standard) or '3-phase' (International)
  * @param {Object} params.environmental - Environmental conditions (optional)
  * @returns {Object} Feed calculation results
  */
@@ -246,6 +292,7 @@ export function calculateFeed(params) {
     quantity,
     rearingStyle,
     targetWeight = 'medium',
+    feedingSystem = '2-phase',
     environmental = {}
   } = params;
 

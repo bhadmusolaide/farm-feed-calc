@@ -261,6 +261,38 @@ export const useUnifiedStore = create(
             set({ isSyncing: false, syncError: error.message });
           }
         },
+
+        // Initialize store-related persisted data on app start
+        initialize: async () => {
+          try {
+            // Ensure the correct strategy is in use (auth may have changed)
+            get()._updatePersistenceStrategy();
+
+            // Load saved calculations so UI reflects persisted state
+            if (get().loadSavedResults) {
+              await get().loadSavedResults();
+            }
+          } catch (error) {
+            console.error('Initialization error:', error);
+          }
+        },
+
+        // Load global site settings (best-effort; safe no-op if unavailable)
+        loadGlobalSettings: async () => {
+          try {
+            const strategy = get()._getPersistenceStrategy();
+            // Some strategies may not support 'settings'
+            if (strategy && typeof strategy.list === 'function') {
+              const settingsList = await strategy.list('settings');
+              if (Array.isArray(settingsList) && settingsList.length > 0) {
+                set({ globalSettings: settingsList[0] });
+              }
+            }
+          } catch (error) {
+            // Non-fatal: log and continue
+            console.error('Error loading global settings:', error);
+          }
+        },
         
         deleteResult: async (calculationId) => {
           try {
