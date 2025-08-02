@@ -301,8 +301,10 @@ export default function SettingsPage() {
   // Firebase handles session management automatically
 
   // Role guard: Only admins can access settings.
-  // Expect a flag userProfile?.is_admin or custom claim in userProfile?.roles
-  const isAdmin = !!(userProfile?.is_admin || userProfile?.roles?.includes?.('admin'));
+  // We allow either userProfiles flag or custom claim or email allowlist fallback
+  const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  const isEmailAdmin = user?.email ? ADMIN_EMAILS.includes(user.email.toLowerCase()) : false;
+  const isAdmin = !!(userProfile?.is_admin || userProfile?.roles?.includes?.('admin') || isEmailAdmin);
 
   // If not authenticated, show login form
   if (!isAuthenticated) {
