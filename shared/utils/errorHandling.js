@@ -187,7 +187,8 @@ export const logError = (error, context = {}) => {
   };
   
   // Log to console in development
-  if (process.env.NODE_ENV === 'development' || __DEV__) {
+  const IS_DEV = typeof process !== 'undefined' ? process.env.NODE_ENV === 'development' : false;
+  if (IS_DEV) {
     console.error('App Error:', errorLog);
   }
   
