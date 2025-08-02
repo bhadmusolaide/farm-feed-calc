@@ -120,6 +120,7 @@ export default function FeedCalculator() {
   };
 
   const confirmReset = () => {
+    // Use centralized reset in the unified store
     resetForm();
     setAgeInput('days');
     setShowResetConfirm(false);

@@ -6,16 +6,25 @@ import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 
 export default function SavedResults() {
-  const { savedCalculations, deleteCalculation, updateCalculationName, clearAllCalculations, loadSavedCalculations, setActiveTab, loadCalculation } = useUnifiedStore();
+  // Align with unifiedStore.js API method names
+  const {
+    savedCalculations,
+    deleteResult,
+    updateResultName,
+    clearAllResults,
+    loadSavedResults,
+    setActiveTab,
+    loadCalculation
+  } = useUnifiedStore();
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
 
   // Load saved results when component mounts
   useEffect(() => {
-    if (loadSavedCalculations) {
-      loadSavedCalculations();
+    if (loadSavedResults) {
+      loadSavedResults();
     }
-  }, [loadSavedCalculations]);
+  }, [loadSavedResults]);
 
   const handleLoadResult = (result) => {
     // Load the saved result into the main store using the unified store method
@@ -32,7 +41,7 @@ export default function SavedResults() {
 
   const handleSaveEdit = () => {
     if (editName.trim()) {
-      updateCalculationName(editingId, editName.trim());
+      updateResultName(editingId, editName.trim());
     }
     setEditingId(null);
     setEditName('');
@@ -149,7 +158,7 @@ export default function SavedResults() {
                   View
                 </button>
                 <button
-                  onClick={() => deleteCalculation(result.id)}
+                  onClick={() => deleteResult(result.id)}
                   className="btn-ghost btn-sm text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -209,7 +218,7 @@ export default function SavedResults() {
           <button
             onClick={() => {
               if (confirm('Are you sure you want to delete all saved results? This action cannot be undone.')) {
-                clearAllCalculations();
+                clearAllResults();
               }
             }}
             className="btn-outline text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20"

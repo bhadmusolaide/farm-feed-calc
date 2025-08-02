@@ -13,7 +13,7 @@ import WaitlistAdmin from '../../components/WaitlistAdmin';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { isAuthenticated, signOut, user } = useFirebaseAuthStore();
+  const { isAuthenticated, signOut, user, userProfile } = useFirebaseAuthStore();
   const { 
     globalSettings, 
     isLoadingGlobal, 
@@ -62,33 +62,91 @@ export default function SettingsPage() {
     heroVideoTitle: '',
   });
 
-  // Initialize global settings on component mount
+  // Initialize global settings on component mount and when auth changes
   useEffect(() => {
-    const initializeSettings = async () => {
-      await initialize();
-    };
-    initializeSettings();
-  }, [initialize]);
+    let cancelled = false;
 
+    const initializeSettings = async () => {
+      try {
+        await initialize();
+      } catch (err) {
+        // Swallow initialize errors, we'll fall back to defaults
+        console.error('initialize() failed, falling back to defaults', err);
+      } finally {
+        if (!cancelled && globalSettings) {
+          // If we already have something in globalSettings, the next effect will shape it and stop loading
+          // Otherwise we will still fall back after timeout below
+        }
+      }
+    };
+
+    initializeSettings();
+
+    // Safety timeout to prevent endless spinner
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) {
+        setIsLoading(false);
+      }
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [initialize, isAuthenticated]);
+
+  // When globalSettings changes, normalize shape and stop loading
   useEffect(() => {
-    if (globalSettings && globalSettings.footer && globalSettings.recommendedFeeds) {
-      setFormData({
-        siteTitle: globalSettings.siteTitle || '',
-        siteDescription: globalSettings.siteDescription || '',
-        logoUrl: globalSettings.logoUrl || '',
-        footerLogoUrl: globalSettings.footer.logoUrl || '',
-        footerDescription: globalSettings.footer.description || '',
-        footerFeatures: [...(globalSettings.footer.features || [])],
-        footerSupport: [...(globalSettings.footer.support || [])],
-        footerCopyright: globalSettings.footer.copyright || '',
-        recommendedFeedsTitle: globalSettings.recommendedFeeds.title || '',
-        recommendedFeedsDescription: globalSettings.recommendedFeeds.description || '',
-        heroVideoEnabled: globalSettings.heroVideo?.enabled || false,
-        heroVideoUrl: globalSettings.heroVideo?.url || '',
-        heroVideoTitle: globalSettings.heroVideo?.title || '',
-      });
-      setIsLoading(false);
-    }
+    // Build safe defaults
+    const defaults = {
+      siteTitle: '',
+      siteDescription: '',
+      logoUrl: '',
+      footer: {
+        logoUrl: '',
+        description: '',
+        features: [],
+        support: [],
+        copyright: '',
+      },
+      recommendedFeeds: {
+        title: '',
+        description: '',
+      },
+      heroVideo: {
+        enabled: false,
+        url: '',
+        title: '',
+      },
+    };
+
+    // Merge incoming settings with defaults to guarantee required shape
+    const gs = globalSettings ? {
+      ...defaults,
+      ...globalSettings,
+      footer: { ...defaults.footer, ...(globalSettings.footer || {}) },
+      recommendedFeeds: { ...defaults.recommendedFeeds, ...(globalSettings.recommendedFeeds || {}) },
+      heroVideo: { ...defaults.heroVideo, ...(globalSettings.heroVideo || {}) },
+    } : defaults;
+
+    setFormData({
+      siteTitle: gs.siteTitle,
+      siteDescription: gs.siteDescription,
+      logoUrl: gs.logoUrl,
+      footerLogoUrl: gs.footer.logoUrl,
+      footerDescription: gs.footer.description,
+      footerFeatures: [...(gs.footer.features || [])],
+      footerSupport: [...(gs.footer.support || [])],
+      footerCopyright: gs.footer.copyright,
+      recommendedFeedsTitle: gs.recommendedFeeds.title,
+      recommendedFeedsDescription: gs.recommendedFeeds.description,
+      heroVideoEnabled: gs.heroVideo.enabled,
+      heroVideoUrl: gs.heroVideo.url,
+      heroVideoTitle: gs.heroVideo.title,
+    });
+
+    // Stop loading regardless of whether gs came from store or defaults
+    setIsLoading(false);
   }, [globalSettings]);
 
   const handleInputChange = (field, value) => {
@@ -241,10 +299,36 @@ export default function SettingsPage() {
   };
 
   // Firebase handles session management automatically
-  
+
+  // Role guard: Only admins can access settings.
+  // Expect a flag userProfile?.is_admin or custom claim in userProfile?.roles
+  const isAdmin = !!(userProfile?.is_admin || userProfile?.roles?.includes?.('admin'));
+
   // If not authenticated, show login form
   if (!isAuthenticated) {
     return <LoginForm onSuccess={() => {}} />;
+  }
+
+  // If authenticated but not admin, show 403-style message
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center px-4">
+        <div className="max-w-lg w-full bg-white dark:bg-neutral-800 rounded-xl shadow border border-neutral-200 dark:border-neutral-700 p-6 text-center">
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+            Access Restricted
+          </h2>
+          <p className="text-neutral-600 dark:text-neutral-300 mb-4">
+            You do not have permission to access Settings. Please contact an administrator if you believe this is an error.
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="btn-primary"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (isLoading) {

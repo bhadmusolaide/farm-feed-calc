@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { calculateFeed, generateFeedingSchedule, generateBestPractices } from '../../shared/utils/feedCalculator.js';
-import { getRecommendedFeeds, getLocalFeedMix } from '../../shared/data/feedBrands.js';
+import { getRecommendedFeeds, getLocalFeedMix, FEED_BRANDS, LOCAL_FEED_MIXES } from '../../shared/data/feedBrands.js';
 import { getWeeklyKnowledge } from '../../shared/data/knowledgeSnippets.js';
 import { logError, retryWithBackoff, safeAsync } from '../../shared/utils/errorHandling';
 import { PersistenceStrategyFactory } from './persistenceStrategies';
@@ -46,8 +46,8 @@ export const useUnifiedStore = create(
         // Saved data
         savedCalculations: [],
         favorites: [],
-        customFeeds: [],
-        localMixes: [],
+        customFeeds: FEED_BRANDS, // Initialize with commercial feed brands
+        localMixes: LOCAL_FEED_MIXES, // Initialize with local feed mixes
         userSettings: {},
         
         // Site settings
@@ -98,6 +98,20 @@ export const useUnifiedStore = create(
         setRearingStyle: (rearingStyle) => set({ rearingStyle }),
         setTargetWeight: (targetWeight) => set({ targetWeight }),
         setActiveTab: (activeTab) => set({ activeTab }),
+
+        // Reset form inputs to defaults
+        resetForm: () => {
+          set({
+            birdType: 'broiler',
+            breed: 'Arbor Acres',
+            ageInDays: 28,
+            quantity: 50,
+            rearingStyle: 'commercial',
+            targetWeight: 'medium',
+            showResults: false,
+            activeTab: 'calculator'
+          });
+        },
         
         // Calculate feed requirements
         calculateFeedRequirements: async () => {
@@ -829,8 +843,8 @@ export const getTargetWeightOptions = () => [
 ];
 
 export const getRearingStyleOptions = () => [
-  { value: 'commercial', label: 'Commercial' },
-  { value: 'free-range', label: 'Free Range' },
-  { value: 'organic', label: 'Organic' },
-  { value: 'backyard', label: 'Backyard' }
+  { value: 'commercial', label: 'Commercial', description: 'Intensive setup with controlled housing and formulated feeds' },
+  { value: 'free-range', label: 'Free Range', description: 'Outdoor access with partial foraging plus supplemental feed' },
+  { value: 'organic', label: 'Organic', description: 'Certified organic feed and welfare standards, no antibiotics' },
+  { value: 'backyard', label: 'Backyard', description: 'Small-scale, low infrastructure, irregular feeding and scavenging' }
 ];

@@ -71,7 +71,7 @@ const ProgressTracker = ({ calculationId }) => {
     };
     
     generateProgressData();
-  }, [calculationId, savedResults, calculateNextDay]);
+  }, [calculationId, savedCalculations, calculateNextDay]);
 
   if (!progressData) {
     return (

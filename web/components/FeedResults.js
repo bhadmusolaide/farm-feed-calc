@@ -83,15 +83,12 @@ export default function FeedResults() {
     };
     
     try {
-      const savedId = await saveCalculation({
-        ...resultData,
-        name: calculationName || `${birdType} - ${breed} (Day ${ageInDays})`,
-        autoProgression,
-        startDate: autoProgression ? new Date().toISOString() : null,
-        currentQuantity: quantity,
-        mortalityLog: [],
-        lastCalculated: new Date().toISOString()
-      });
+      // Use the store API signature: saveResult(resultData, name, autoProgression)
+      const savedId = await useUnifiedStore.getState().saveResult(
+        resultData,
+        calculationName || `${birdType} - ${breed} (Day ${ageInDays})`,
+        autoProgression
+      );
       
       // Only show success if we actually got a saved ID
       if (savedId) {
@@ -340,32 +337,6 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
         </div>
       </div>
 
-      {/* Best Practices */}
-      <div className="card p-6">
-        <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
-          <Lightbulb className="w-5 h-5 mr-2 text-accent-600" />
-          Best Practices for Your Birds
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {bestPractices.map((practice, index) => (
-            <div
-              key={index}
-              className="flex items-start space-x-3 p-3 bg-accent-50 dark:bg-accent-900/20 rounded-lg"
-            >
-              <div className="flex-shrink-0 w-6 h-6 bg-accent-200 dark:bg-accent-700 rounded-full flex items-center justify-center mt-0.5">
-                <span className="text-xs font-medium text-accent-800 dark:text-accent-200">
-                  {index + 1}
-                </span>
-              </div>
-              <p className="text-sm text-accent-800 dark:text-accent-300 leading-relaxed">
-                {practice}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Weekly Summary */}
       <div className="card p-6 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20">
         <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
@@ -425,6 +396,32 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
               Based on management system
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Best Practices */}
+      <div className="card p-6">
+        <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
+          <Lightbulb className="w-5 h-5 mr-2 text-accent-600" />
+          Best Practices for Your Birds
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {bestPractices.map((practice, index) => (
+            <div
+              key={index}
+              className="flex items-start space-x-3 p-3 bg-accent-50 dark:bg-accent-900/20 rounded-lg"
+            >
+              <div className="flex-shrink-0 w-6 h-6 bg-accent-200 dark:bg-accent-700 rounded-full flex items-center justify-center mt-0.5">
+                <span className="text-xs font-medium text-accent-800 dark:text-accent-200">
+                  {index + 1}
+                </span>
+              </div>
+              <p className="text-sm text-accent-800 dark:text-accent-300 leading-relaxed">
+                {practice}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 

@@ -127,9 +127,10 @@ export const validateInput = {
       throw new AppError(VALIDATION_MESSAGES.REQUIRED_FIELD, ERROR_TYPES.VALIDATION, ERROR_SEVERITY.MEDIUM);
     }
     
-    const validStyles = ['backyard', 'commercial'];
+    // Keep this list in sync with getRearingStyleOptions (web/lib/unifiedStore.js)
+    const validStyles = ['backyard', 'commercial', 'free-range', 'organic'];
     if (!validStyles.includes(value)) {
-      throw new AppError(VALIDATION_MESSAGES.INVALID_REARING_STYLE, ERROR_TYPES.VALIDATION, ERROR_SEVERITY.MEDIUM);
+      throw new AppError(VALIDATION_MESSAGES.INVALID_REARING_STYLE, ERROR_TYPES.VALIDATION, ERROR_SEVERITY.MEDIUM, { received: value, valid: validStyles });
     }
     
     return value;

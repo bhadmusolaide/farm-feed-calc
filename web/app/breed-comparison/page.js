@@ -159,7 +159,7 @@ export default function BreedComparisonPage() {
     <>
       <Header />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container-app py-8">
         {/* Introduction */}
         <div className="glass-card p-6 mb-8">
           <div className="flex items-start space-x-4">

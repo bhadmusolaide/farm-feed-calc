@@ -49,7 +49,8 @@ export class LocalStorageStrategy extends PersistenceStrategy {
   async save(key, data) {
     try {
       const storageKey = this._getStorageKey(key);
-      const existing = this.list(key);
+      // Ensure we have an array from storage (list is async; await it)
+      const existing = await this.list(key);
       const id = data.id || this._generateId();
       
       const item = {
@@ -59,7 +60,9 @@ export class LocalStorageStrategy extends PersistenceStrategy {
         updatedAt: new Date().toISOString()
       };
 
-      const items = existing.filter(item => item.id !== id);
+      // Guard against corrupted storage (non-array)
+      const base = Array.isArray(existing) ? existing : [];
+      const items = base.filter(entry => entry && entry.id !== id);
       items.unshift(item);
       
       localStorage.setItem(storageKey, JSON.stringify(items));
@@ -72,7 +75,7 @@ export class LocalStorageStrategy extends PersistenceStrategy {
 
   async load(key, id) {
     try {
-      const items = this.list(key);
+      const items = await this.list(key);
       return items.find(item => item.id === id) || null;
     } catch (error) {
       console.error('LocalStorage load error:', error);
@@ -83,8 +86,8 @@ export class LocalStorageStrategy extends PersistenceStrategy {
   async delete(key, id) {
     try {
       const storageKey = this._getStorageKey(key);
-      const items = this.list(key);
-      const filtered = items.filter(item => item.id !== id);
+      const items = await this.list(key);
+      const filtered = (Array.isArray(items) ? items : []).filter(item => item.id !== id);
       localStorage.setItem(storageKey, JSON.stringify(filtered));
       return true;
     } catch (error) {
@@ -97,7 +100,9 @@ export class LocalStorageStrategy extends PersistenceStrategy {
     try {
       const storageKey = this._getStorageKey(key);
       const stored = localStorage.getItem(storageKey);
-      return stored ? JSON.parse(stored) : [];
+      const parsed = stored ? JSON.parse(stored) : [];
+      // Ensure array return even if corrupted
+      return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
       console.error('LocalStorage list error:', error);
       return [];
