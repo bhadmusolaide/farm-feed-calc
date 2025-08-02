@@ -631,7 +631,7 @@ export const useUnifiedStore = create(
         getSiteTitle: () => {
           const state = get();
           const defaultSettings = {
-            siteTitle: 'Feed Calculator by Omzo Farmz'
+            siteTitle: 'FeedMate by Omzo Farmz'
           };
           return (state.globalSettings || defaultSettings).siteTitle;
         },
@@ -766,7 +766,7 @@ export const useUnifiedStore = create(
 
             // If not found, seed defaults (first-time bootstrap)
             const defaultSettings = {
-              siteTitle: 'Feed Calculator by Omzo Farmz',
+              siteTitle: 'FeedMate by Omzo Farmz',
               siteDescription: 'For Nigerian Farmers',
               logoUrl: '',
               footer: {

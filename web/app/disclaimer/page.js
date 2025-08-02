@@ -18,7 +18,7 @@ export default function Disclaimer() {
           <div className="flex items-center mb-6">
             <FileText className="w-8 h-8 text-primary-600 dark:text-primary-400 mr-3" />
             <h1 className="text-3xl font-bold text-neutral-900 dark:text-white">
-              📄 Disclaimer
+              Disclaimer
             </h1>
           </div>
 
@@ -28,7 +28,7 @@ export default function Disclaimer() {
 
           <div className="prose prose-neutral dark:prose-invert max-w-none">
             <p className="text-lg text-neutral-700 dark:text-neutral-300 mb-6">
-              This application ("Feed Calculator by Omzo Farmz") is owned and operated by Omzo Farmz. 
+              This application ("FeedMate by Omzo Farmz") is owned and operated by Omzo Farmz. 
               The App is designed to provide general guidance and feed recommendations for poultry farmers, 
               specifically targeting users in Nigeria and other African regions.
             </p>
