@@ -119,6 +119,16 @@ keys/
 *.bak
 *.orig
 
+# Expo/EAS build artifacts and local credentials
+*.aab
+*.apk
+*.ipa
+*.xcarchive
+*.dsym
+eas-error.log
+mobile/.eas/
+mobile/.expo/
+
 # Archive files
 *.zip
 *.tar.gz

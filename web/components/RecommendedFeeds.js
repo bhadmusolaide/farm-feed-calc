@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useUnifiedStore } from '../lib/unifiedStore';
 import { getLocalFeedMix, calculateLocalFeedCost } from '../../shared/data/feedBrands.js';
+import { calculateFeedCost } from '../../shared/utils/feedCalculator.js';
 import { BookOpen, Package, MapPin, DollarSign, Info, Star, Filter, Search } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useToast } from './Toast';
@@ -19,20 +20,32 @@ export default function RecommendedFeeds() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Determine feed stage using shared logic that honors feeding system
+  const { getState } = useUnifiedStore;
   const recommendedFeeds = useMemo(() => {
     try {
       setError(null);
-      
-      // Determine feed stage based on bird type and age
+
+      const state = getState();
+      const feedingSystem = state.feedingSystem || '2-phase';
+
+      // Determine feed stage based on bird type, age and feeding system
       let feedStage;
       if (birdType === 'layer') {
         feedStage = ageInDays < 126 ? (ageInDays <= 28 ? 'starter' : 'grower') : 'layer';
       } else {
-        if (ageInDays <= 28) feedStage = 'starter';
-        else if (ageInDays <= 42) feedStage = 'grower';
-        else feedStage = 'finisher';
+        // Broilers: synchronize with getFeedType mapping (Nigeria 2-phase vs International 3-phase)
+        // 2-phase: starter ≤35d, finisher >35d
+        // 3-phase: starter ≤28d, grower 29–42d, finisher >42d
+        if (feedingSystem === '2-phase') {
+          feedStage = ageInDays <= 35 ? 'starter' : 'finisher';
+        } else {
+          if (ageInDays <= 28) feedStage = 'starter';
+          else if (ageInDays <= 42) feedStage = 'grower';
+          else feedStage = 'finisher';
+        }
       }
-      
+
       // Get feeds from the unified store for the appropriate stage
       return customFeeds[feedStage] || [];
     } catch (err) {
@@ -48,14 +61,21 @@ export default function RecommendedFeeds() {
 
   const localFeedMix = useMemo(() => {
     try {
-      // Determine feed stage based on bird type and age
+      const state = getState();
+      const feedingSystem = state.feedingSystem || '2-phase';
+
+      // Determine feed stage based on bird type, age and feeding system
       let feedStage;
       if (birdType === 'layer') {
         feedStage = ageInDays < 126 ? (ageInDays <= 28 ? 'starter' : 'grower') : 'layer';
       } else {
-        if (ageInDays <= 28) feedStage = 'starter';
-        else if (ageInDays <= 42) feedStage = 'grower';
-        else feedStage = 'finisher';
+        if (feedingSystem === '2-phase') {
+          feedStage = ageInDays <= 35 ? 'starter' : 'finisher';
+        } else {
+          if (ageInDays <= 28) feedStage = 'starter';
+          else if (ageInDays <= 42) feedStage = 'grower';
+          else feedStage = 'finisher';
+        }
       }
       
       // Get local mix from the management store for the appropriate stage
@@ -74,6 +94,17 @@ export default function RecommendedFeeds() {
       return null;
     }
   }, [localFeedMix]);
+
+  const commercialFeedPrice = useMemo(() => {
+    try {
+      // Calculate commercial feed price based on current bird type and age
+      const costData = calculateFeedCost(birdType, ageInDays, 1); // 1kg as base calculation
+      return costData.pricePerKg;
+    } catch (err) {
+      logError(err, 'Failed to calculate commercial feed price', { birdType, ageInDays });
+      return 1020; // Fallback to average price
+    }
+  }, [birdType, ageInDays]);
 
   const filteredFeeds = useMemo(() => {
     let feeds = [...recommendedFeeds];
@@ -109,6 +140,10 @@ export default function RecommendedFeeds() {
     if (birdType === 'layer') {
       return ageInDays < 126 ? (ageInDays <= 28 ? 'starter' : 'grower') : 'layer';
     } else {
+      const feedingSystem = useUnifiedStore.getState().feedingSystem || '2-phase';
+      if (feedingSystem === '2-phase') {
+        return ageInDays <= 35 ? 'starter' : 'finisher';
+      }
       if (ageInDays <= 28) return 'starter';
       if (ageInDays <= 42) return 'grower';
       return 'finisher';
@@ -352,12 +387,12 @@ export default function RecommendedFeeds() {
                 <div>
                   <span className="text-secondary-700 dark:text-secondary-300">Commercial Average:</span>
                   <span className="font-semibold text-secondary-900 dark:text-secondary-100 ml-2">
-                    ₦320/kg
+                    ₦{commercialFeedPrice}/kg
                   </span>
                 </div>
               </div>
               <div className="mt-2 text-xs text-secondary-600 dark:text-secondary-400">
-                Potential savings: ₦{Math.round(320 - localFeedCost)}/kg
+                Potential savings: ₦{Math.round(commercialFeedPrice - localFeedCost)}/kg
               </div>
             </div>
           </div>
@@ -463,7 +498,7 @@ export default function RecommendedFeeds() {
                   Total Cost: ₦{Math.round(localFeedCost * 25).toLocaleString()}
                 </div>
                 <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Savings vs Commercial: ₦{Math.round((320 - localFeedCost) * 25).toLocaleString()}
+                  Savings vs Commercial: ₦{Math.round((commercialFeedPrice - localFeedCost) * 25).toLocaleString()}
                 </div>
               </div>
             </div>

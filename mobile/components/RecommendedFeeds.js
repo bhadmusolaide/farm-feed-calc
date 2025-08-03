@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import { useFeedStore } from '../lib/store';
 import { FEED_BRANDS, LOCAL_FEED_MIXES, getRecommendedFeeds, getLocalFeedMix, calculateLocalFeedCost } from '../lib/feedBrands.js';
+import { calculateFeedCost } from '../../shared/utils/feedCalculator.js';
 import { useToast } from './Toast';
 import { formatErrorForUser, logError } from '../../shared/utils/errorHandling';
 
@@ -47,6 +48,17 @@ export default function RecommendedFeeds() {
       return null;
     }
   }, [localFeedMix]);
+
+  const commercialFeedPrice = useMemo(() => {
+    try {
+      // Calculate commercial feed price based on current bird type and age
+      const costData = calculateFeedCost(birdType, ageInDays, 1); // 1kg as base calculation
+      return costData.pricePerKg;
+    } catch (err) {
+      logError(err, 'Failed to calculate commercial feed price', { birdType, ageInDays });
+      return 1020; // Fallback to average price
+    }
+  }, [birdType, ageInDays]);
 
   const filteredFeeds = useMemo(() => {
     let feeds = [...recommendedFeeds];
@@ -331,14 +343,14 @@ export default function RecommendedFeeds() {
                   <View className="flex-row justify-between">
                     <Text className="text-secondary-700">Commercial Average:</Text>
                     <Text className="font-semibold text-secondary-900">
-                      ₦320/kg
+                      ₦{commercialFeedPrice}/kg
                     </Text>
                   </View>
                   <View className="h-px bg-secondary-200 my-2" />
                   <View className="flex-row justify-between">
                     <Text className="text-secondary-700">Potential Savings:</Text>
                     <Text className="font-bold text-success-600">
-                      ₦{Math.round(320 - localFeedCost)}/kg
+                      ₦{Math.round(commercialFeedPrice - localFeedCost)}/kg
                     </Text>
                   </View>
                 </View>

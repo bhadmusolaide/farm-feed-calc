@@ -69,7 +69,29 @@ export class DatabaseService {
       console.log('🔍 Getting calculations for user:', user.id);
       const result = await feedCalculationsDB.getByUser(user.id);
       console.log('📋 Database result:', result);
-      return result.data || [];
+      
+      // Transform the data to match the expected format
+      const transformedData = (result.data || []).map(calculation => {
+        const transformed = { ...calculation };
+        
+        // Map created_at to savedAt for compatibility with SavedResults component
+        if (calculation.created_at && !calculation.savedAt) {
+          // Handle Firestore Timestamp objects
+          if (calculation.created_at.toDate) {
+            transformed.savedAt = calculation.created_at.toDate().toISOString();
+          } else if (calculation.created_at.seconds) {
+            // Handle Firestore timestamp format
+            transformed.savedAt = new Date(calculation.created_at.seconds * 1000).toISOString();
+          } else {
+            // Handle string timestamps
+            transformed.savedAt = calculation.created_at;
+          }
+        }
+        
+        return transformed;
+      });
+      
+      return transformedData;
     } catch (error) {
       console.error('❌ Error fetching calculations:', error);
       return [];

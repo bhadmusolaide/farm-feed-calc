@@ -683,28 +683,22 @@ export function calculateFCR({ birdType, ageInDays, currentWeight, totalFeedCons
 export function calculateFeedCost(birdType, ageInDays, weeklyFeedKg) {
   // Current market prices (₦ per 25kg bag)
   const FEED_PRICES = {
-    starter: { pricePerBag: 24500, bagSizeKg: 25 }, // ₦24,500 for 25kg
-    finisher: { pricePerBag: 24000, bagSizeKg: 25 }, // ₦24,000 for 25kg
-    layer: { pricePerBag: 20000, bagSizeKg: 25 }     // ₦20,000 for 25kg
+    starter: { pricePerBag: 25500, bagSizeKg: 25 }, // ₦25,500 for 25kg - Most expensive
+    grower: { pricePerBag: 24500, bagSizeKg: 25 },  // ₦24,500 for 25kg - Between starter and finisher
+    finisher: { pricePerBag: 24000, bagSizeKg: 25 }, // ₦24,000 for 25kg - Medium price
+    layer: { pricePerBag: 22000, bagSizeKg: 25 }     // ₦22,000 for 25kg - Lowest price
   };
 
-  let feedType, pricePerKg;
-
-  if (birdType === 'layer') {
-    feedType = 'layer';
-    pricePerKg = FEED_PRICES.layer.pricePerBag / FEED_PRICES.layer.bagSizeKg;
-  } else if (birdType === 'broiler') {
-    // Broilers: starter feed for first 4 weeks, finisher feed after
-    if (ageInDays <= 28) {
-      feedType = 'starter';
-      pricePerKg = FEED_PRICES.starter.pricePerBag / FEED_PRICES.starter.bagSizeKg;
-    } else {
-      feedType = 'finisher';
-      pricePerKg = FEED_PRICES.finisher.pricePerBag / FEED_PRICES.finisher.bagSizeKg;
-    }
+  // Use the existing getFeedType function for consistency
+  const feedType = getFeedType(birdType, ageInDays, '2-phase');
+  
+  let pricePerKg;
+  
+  // Get price based on feed type
+  if (FEED_PRICES[feedType]) {
+    pricePerKg = FEED_PRICES[feedType].pricePerBag / FEED_PRICES[feedType].bagSizeKg;
   } else {
-    // Default fallback
-    feedType = 'starter';
+    // Fallback to starter price if feed type not found
     pricePerKg = FEED_PRICES.starter.pricePerBag / FEED_PRICES.starter.bagSizeKg;
   }
 

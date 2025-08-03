@@ -9,6 +9,7 @@ import { LoadingWrapper } from './LoadingState';
 import { formatErrorForUser, logError } from '../../shared/utils/errorHandling';
 import { calculateFeedCost, calculateExpectedWeight, getFCRReference } from '../../shared/utils/feedCalculator';
 import { calculateOptimalTemperature } from '../../shared/utils/temperatureCalculator';
+import FeedProgressionCard from './FeedProgressionCard';
 
 export default function FeedResults() {
   const { feedResults, feedingSchedule, bestPractices, birdType, breed, ageInDays, quantity, rearingStyle, targetWeight, saveCalculation } = useUnifiedStore();
@@ -30,6 +31,23 @@ export default function FeedResults() {
     ageInDays,
     targetWeight
   });
+
+  // Derive current feed phase label synced with feeding system rules
+  const feedingSystem = useUnifiedStore.getState().feedingSystem || '2-phase';
+  const currentFeedPhase = (() => {
+    if (birdType === 'layer') {
+      return ageInDays <= 28 ? 'Starter' : ageInDays < 126 ? 'Grower' : 'Layer';
+    }
+    // Broilers
+    if (feedingSystem === '2-phase') {
+      // Nigeria-Standard: Starter ≤35d, Finisher >35d
+      return ageInDays <= 35 ? 'Starter' : 'Finisher';
+    }
+    // International 3-phase: Starter ≤28d, Grower 29–42d, Finisher >42d
+    if (ageInDays <= 28) return 'Starter';
+    if (ageInDays <= 42) return 'Grower';
+    return 'Finisher';
+  })();
 
   // Get FCR reference data
   const fcrReference = getFCRReference(birdType, ageInDays);
@@ -382,7 +400,7 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
                 {expectedWeightData.weightRange.min}-{expectedWeightData.weightRange.max}kg range
               </div>
               <div className="text-xs text-accent-600 dark:text-accent-400 mt-1">
-                {expectedWeightData.growthStage}
+                {expectedWeightData.growthStage} • {currentFeedPhase}
               </div>
             </div>
           )}
@@ -398,6 +416,17 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
           </div>
         </div>
       </div>
+
+      {/* Feed Progression Tracker */}
+      <FeedProgressionCard
+        birdType={birdType}
+        breed={breed}
+        ageInDays={ageInDays}
+        quantity={quantity}
+        rearingStyle={rearingStyle}
+        targetWeight={targetWeight}
+        environmental={{}}
+      />
 
       {/* Best Practices */}
       <div className="card p-6">

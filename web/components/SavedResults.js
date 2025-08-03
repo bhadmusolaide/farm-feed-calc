@@ -167,7 +167,7 @@ export default function SavedResults() {
             </div>
             
             {/* Result Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-neutral-50 dark:bg-neutral-800 rounded-xl">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-neutral-50 dark:bg-neutral-800 rounded-xl">
               <div className="text-center">
                 <div className="text-sm text-neutral-600 dark:text-neutral-400">Bird Type</div>
                 <div className="font-medium text-neutral-900 dark:text-neutral-100 capitalize">
@@ -205,6 +205,16 @@ export default function SavedResults() {
                 </div>
                 <div className="text-xs text-neutral-500 dark:text-neutral-400">
                   {result.feedResults?.total?.cups} cups
+                </div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-sm text-neutral-600 dark:text-neutral-400">Weight Plan</div>
+                <div className="font-medium text-neutral-900 dark:text-neutral-100 capitalize">
+                  {result.targetWeight || (result.feedResults?.targetWeight) || '—'}
+                </div>
+                <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                  {result.targetWeight || result.feedResults?.targetWeight ? 'plan' : ''}
                 </div>
               </div>
             </div>

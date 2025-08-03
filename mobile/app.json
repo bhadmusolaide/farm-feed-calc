@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.poultryfeed.calculator",
+      "bundleIdentifier": "com.yourorg.chickenfeed",
       "buildNumber": "1"
     },
     "android": {
@@ -24,7 +24,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.poultryfeed.calculator",
+      "package": "com.yourorg.chickenfeed",
       "versionCode": 1,
       "permissions": [
         "android.permission.INTERNET",
@@ -53,12 +53,12 @@
         }
       ],
       [
-         "expo-notifications",
-         {
-           "color": "#0284c7",
-           "defaultChannel": "feeding-reminders"
-         }
-       ]
+        "expo-notifications",
+        {
+          "color": "#0284c7",
+          "defaultChannel": "feeding-reminders"
+        }
+      ]
     ],
     "scheme": "chicken-feed-calculator",
     "extra": {
@@ -67,8 +67,16 @@
       },
       "eas": {
         "projectId": "your-project-id-here"
-      }
+      },
+      "appEnv": "production"
     },
-    "owner": "your-expo-username"
+    "owner": "your-expo-username",
+    "updates": {
+      "url": "https://u.expo.dev/your-project-id-here",
+      "enabled": true
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }

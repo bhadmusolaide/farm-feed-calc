@@ -133,6 +133,25 @@ const DailyDashboard = () => {
                           <span className="text-neutral-600 dark:text-neutral-400">Protein:</span>
                           <span className="font-medium text-neutral-900 dark:text-white">{nextDay.protein}%</span>
                         </div>
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600 dark:text-neutral-400">Phase:</span>
+                          <span className="font-medium text-neutral-900 dark:text-white">
+                            {(() => {
+                              // Mirror getFeedType thresholds for clarity; nextDay.feedType already reflects this.
+                              const feedingSystem = (calc.feedingSystem || '2-phase');
+                              const age = currentAge;
+                              if (calc.birdType === 'layer') {
+                                return age <= 28 ? 'Starter' : age < 126 ? 'Grower' : 'Layer';
+                              }
+                              if (feedingSystem === '2-phase') {
+                                return age <= 35 ? 'Starter' : 'Finisher';
+                              }
+                              if (age <= 28) return 'Starter';
+                              if (age <= 42) return 'Grower';
+                              return 'Finisher';
+                            })()}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     
