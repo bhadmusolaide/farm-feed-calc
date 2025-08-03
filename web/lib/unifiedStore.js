@@ -809,31 +809,32 @@ export const useUnifiedStore = create(
           }
         },
 
-        updateSettings: async (newSettings) => {
+        // Renamed to avoid collision with per-user updateSettings.
+        updateGlobalSettings: async (newSettings) => {
           try {
             set({ isLoadingGlobal: true, error: null });
-
+    
             // Merge with existing in-memory settings
             const currentSettings = get().globalSettings || {};
             const updatedSettings = { ...currentSettings, ...newSettings };
-
-            // Persist to Firestore
+    
+            // Persist to Firestore (global)
             const { doc, setDoc } = await import('firebase/firestore');
             const { db } = await import('./firebase');
             const settingsDocRef = doc(db, 'global_settings', 'site');
             await setDoc(settingsDocRef, updatedSettings, { merge: true });
-
+    
             // Reflect in store
             set({ globalSettings: updatedSettings, isLoadingGlobal: false });
-
-            // Also update user settings in the store (kept for backward compatibility)
+    
+            // Keep local mirror for backward compatibility
             const currentUserSettings = get().settings || {};
             const updatedUserSettings = { ...currentUserSettings, ...newSettings };
             set({ settings: updatedUserSettings });
-
+    
             return updatedSettings;
           } catch (error) {
-            console.error('Error updating settings:', error);
+            console.error('Error updating global settings:', error);
             set({ isLoadingGlobal: false, error: error?.message || 'Failed to update settings' });
             throw error;
           }
