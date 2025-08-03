@@ -63,10 +63,20 @@ export async function verifyAdminFromRequest(request) {
   try {
     const auth = await getAdminAuth();
     const decoded = await auth.verifyIdToken(idToken);
-    const isAdmin = decoded?.admin === true;
-    if (!isAdmin) {
-      return { ok: false, status: 403, error: 'Forbidden: admin claim required' };
+
+    // Accept either custom claim admin === true or allowlisted email
+    const claimAdmin = decoded?.admin === true || decoded?.claims?.admin === true;
+    const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+      .split(',')
+      .map(e => e.trim().toLowerCase())
+      .filter(Boolean);
+    const email = (decoded?.email || '').toLowerCase();
+    const emailAdmin = !!email && ADMIN_EMAILS.includes(email);
+
+    if (!(claimAdmin || emailAdmin)) {
+      return { ok: false, status: 403, error: 'Forbidden: admin rights required' };
     }
+
     return { ok: true, decoded };
   } catch (e) {
     console.error('[firebaseAdmin] ID token verification failed:', e?.message);
