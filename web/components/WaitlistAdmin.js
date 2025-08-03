@@ -11,27 +11,58 @@ export default function WaitlistAdmin() {
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
 
+  // Get current Firebase ID token for Authorization header (client-side only)
+  const getIdToken = async () => {
+    try {
+      if (typeof window === 'undefined') return null; // guard SSR
+      const mod = await import('firebase/auth');
+      // Avoid relying on named re-export structure; use default import from our client initializer
+      const client = await import('../lib/firebase');
+      const clientAuth = client.auth;
+      const user = clientAuth?.currentUser;
+      if (!user) return null;
+      return await user.getIdToken(false);
+    } catch (e) {
+      console.error('Failed to get Firebase ID token:', e);
+      return null;
+    }
+  };
+
   const fetchWaitlistData = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/waitlist');
+      const token = await getIdToken();
+      const response = await fetch('/api/waitlist', {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      const maybeJson = (() => {
+        try { return response.headers.get('content-type')?.includes('application/json'); } catch { return false; }
+      })();
+      const payload = maybeJson ? await response.json().catch(() => ({})) : {};
+
       if (response.ok) {
-        const data = await response.json();
-        setWaitlistData(data.entries || []);
-        setStats(data.stats || { total: 0, today: 0, thisWeek: 0, thisMonth: 0 });
+        setWaitlistData(payload.entries || []);
+        setStats(payload.stats || { total: 0, today: 0, thisWeek: 0, thisMonth: 0 });
       } else {
-        throw new Error('Failed to fetch waitlist data');
+        const reason = payload?.error || payload?.message || `HTTP ${response.status}`;
+        throw new Error(`Failed to fetch waitlist data: ${reason}`);
       }
     } catch (error) {
       console.error('Error fetching waitlist data:', error);
-      toast.error('Failed to load waitlist data');
+      toast.error(error?.message || 'Failed to load waitlist data');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchWaitlistData();
+    // Ensure this only runs on the client to avoid SSR errors
+    if (typeof window !== 'undefined') {
+      fetchWaitlistData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const exportToCSV = () => {
@@ -71,21 +102,30 @@ export default function WaitlistAdmin() {
     if (!confirm('Are you sure you want to delete this entry?')) return;
     
     try {
+      const token = await getIdToken();
       const response = await fetch('/api/waitlist', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ email })
       });
-      
+      const maybeJson = (() => {
+        try { return response.headers.get('content-type')?.includes('application/json'); } catch { return false; }
+      })();
+      const payload = maybeJson ? await response.json().catch(() => ({})) : {};
+
       if (response.ok) {
         toast.success('Entry deleted successfully');
         fetchWaitlistData(); // Refresh data
       } else {
-        throw new Error('Failed to delete entry');
+        const reason = payload?.error || payload?.message || `HTTP ${response.status}`;
+        throw new Error(`Failed to delete entry: ${reason}`);
       }
     } catch (error) {
       console.error('Error deleting entry:', error);
-      toast.error('Failed to delete entry');
+      toast.error(error?.message || 'Failed to delete entry');
     }
   };
 

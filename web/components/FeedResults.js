@@ -400,7 +400,7 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
                 {expectedWeightData.weightRange.min}-{expectedWeightData.weightRange.max}kg range
               </div>
               <div className="text-xs text-accent-600 dark:text-accent-400 mt-1">
-                {expectedWeightData.growthStage} • {currentFeedPhase}
+                {currentFeedPhase}
               </div>
             </div>
           )}
@@ -417,16 +417,33 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
         </div>
       </div>
 
-      {/* Feed Progression Tracker */}
-      <FeedProgressionCard
-        birdType={birdType}
-        breed={breed}
-        ageInDays={ageInDays}
-        quantity={quantity}
-        rearingStyle={rearingStyle}
-        targetWeight={targetWeight}
-        environmental={{}}
-      />
+      {/* Feed Progression Tracker (Collapsible with arrow indicator) */}
+      <details className="card p-0 overflow-hidden group" open>
+        <summary className="w-full list-none px-6 py-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer flex items-center justify-between">
+          <span className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100">
+            Feed Progression
+          </span>
+          <svg
+            className="w-4 h-4 text-neutral-600 dark:text-neutral-300 transform transition-transform duration-200 group-open:rotate-90"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path fillRule="evenodd" d="M6.293 7.293a1 1 0 011.414 0L12 11.586l-4.293 4.293a1 1 0 01-1.414-1.414L9.586 12 6.293 8.707a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </summary>
+        <div className="px-6 pb-6">
+          <FeedProgressionCard
+            birdType={birdType}
+            breed={breed}
+            ageInDays={ageInDays}
+            quantity={quantity}
+            rearingStyle={rearingStyle}
+            targetWeight={targetWeight}
+            environmental={{}}
+          />
+        </div>
+      </details>
 
       {/* Best Practices */}
       <div className="card p-6">
@@ -454,98 +471,111 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
         </div>
       </div>
 
-      {/* FCR Reference Card */}
+      {/* FCR Reference Card (Collapsible with arrow indicator) */}
       {fcrReference && (
-        <div className="card p-6 bg-gradient-to-r from-accent-50 to-primary-50 dark:from-accent-900/20 dark:to-primary-900/20">
-          <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
-            📚 Feed Conversion Ratio (FCR) Reference
-          </h3>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Industry Standards */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-3">
-                Industry Standards for {birdType === 'broiler' ? 'Broilers' : 'Layers'}
-              </h4>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between items-center p-3 bg-white dark:bg-neutral-800 rounded-lg">
-                  <span className="text-sm font-medium text-green-700 dark:text-green-400">Excellent</span>
-                  <span className="text-sm text-neutral-600 dark:text-neutral-300">{fcrReference.industryStandard.excellent}</span>
+        <details className="card p-0 overflow-hidden bg-gradient-to-r from-accent-50 to-primary-50 dark:from-accent-900/20 dark:to-primary-900/20 group" open>
+          <summary className="w-full list-none px-6 py-4 hover:bg-accent-100/60 dark:hover:bg-accent-900/30 transition-colors cursor-pointer flex items-center justify-between">
+            <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 flex items-center">
+              📚 Feed Conversion Ratio (FCR) Reference
+            </h3>
+            {/* Arrow icon that rotates when open/closed */}
+            <svg
+              className="w-4 h-4 text-neutral-600 dark:text-neutral-300 transform transition-transform duration-200 group-open:rotate-90"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path fillRule="evenodd" d="M7.293 6.293a1 1 0 011.414 0L12 9.586l-3.293 3.293a1 1 0 01-1.414-1.414L9.586 10 7.293 7.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </summary>
+
+          <div className="px-6 pb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Industry Standards */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-3">
+                  Industry Standards for {birdType === 'broiler' ? 'Broilers' : 'Layers'}
+                </h4>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-neutral-800 rounded-lg">
+                    <span className="text-sm font-medium text-green-700 dark:text-green-400">Excellent</span>
+                    <span className="text-sm text-neutral-600 dark:text-neutral-300">{fcrReference.industryStandard.excellent}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-neutral-800 rounded-lg">
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Good</span>
+                    <span className="text-sm text-neutral-600 dark:text-neutral-300">{fcrReference.industryStandard.good}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-neutral-800 rounded-lg">
+                    <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Average</span>
+                    <span className="text-sm text-neutral-600 dark:text-neutral-300">{fcrReference.industryStandard.average}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-neutral-800 rounded-lg">
+                    <span className="text-sm font-medium text-red-700 dark:text-red-400">Poor</span>
+                    <span className="text-sm text-neutral-600 dark:text-neutral-300">{fcrReference.industryStandard.poor}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-white dark:bg-neutral-800 rounded-lg">
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Good</span>
-                  <span className="text-sm text-neutral-600 dark:text-neutral-300">{fcrReference.industryStandard.good}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white dark:bg-neutral-800 rounded-lg">
-                  <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Average</span>
-                  <span className="text-sm text-neutral-600 dark:text-neutral-300">{fcrReference.industryStandard.average}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white dark:bg-neutral-800 rounded-lg">
-                  <span className="text-sm font-medium text-red-700 dark:text-red-400">Poor</span>
-                  <span className="text-sm text-neutral-600 dark:text-neutral-300">{fcrReference.industryStandard.poor}</span>
+                
+                <div className="p-4 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+                  <div className="text-sm font-medium text-primary-800 dark:text-primary-200 mb-1">
+                    Current Age Target
+                  </div>
+                  <div className="text-lg font-bold text-primary-900 dark:text-primary-100">
+                    {fcrReference.currentWeekTarget}
+                  </div>
+                  <div className="text-xs text-primary-700 dark:text-primary-300">
+                    Week {Math.ceil(ageInDays / 7)} target range
+                  </div>
                 </div>
               </div>
               
-              <div className="p-4 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
-                <div className="text-sm font-medium text-primary-800 dark:text-primary-200 mb-1">
-                  Current Age Target
+              {/* Tips and Factors */}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-3">
+                    💡 Improvement Tips
+                  </h4>
+                  <div className="space-y-2">
+                    {fcrReference.tips.map((tip, index) => (
+                      <div key={index} className="flex items-start space-x-2 p-2 bg-white dark:bg-neutral-800 rounded-lg">
+                        <div className="flex-shrink-0 w-5 h-5 bg-accent-200 dark:bg-accent-700 rounded-full flex items-center justify-center mt-0.5">
+                          <span className="text-xs font-medium text-accent-800 dark:text-accent-200">
+                            {index + 1}
+                          </span>
+                        </div>
+                        <p className="text-sm text-neutral-700 dark:text-neutral-300">
+                          {tip}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="text-lg font-bold text-primary-900 dark:text-primary-100">
-                  {fcrReference.currentWeekTarget}
-                </div>
-                <div className="text-xs text-primary-700 dark:text-primary-300">
-                  Week {Math.ceil(ageInDays / 7)} target range
+                
+                <div>
+                  <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-3">
+                    🎯 Key Factors
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    {fcrReference.factors.map((factor, index) => (
+                      <div key={index} className="p-2 bg-white dark:bg-neutral-800 rounded-lg">
+                        <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                          • {factor}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
             
-            {/* Tips and Factors */}
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-3">
-                  💡 Improvement Tips
-                </h4>
-                <div className="space-y-2">
-                  {fcrReference.tips.map((tip, index) => (
-                    <div key={index} className="flex items-start space-x-2 p-2 bg-white dark:bg-neutral-800 rounded-lg">
-                      <div className="flex-shrink-0 w-5 h-5 bg-accent-200 dark:bg-accent-700 rounded-full flex items-center justify-center mt-0.5">
-                        <span className="text-xs font-medium text-accent-800 dark:text-accent-200">
-                          {index + 1}
-                        </span>
-                      </div>
-                      <p className="text-sm text-neutral-700 dark:text-neutral-300">
-                        {tip}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-3">
-                  🎯 Key Factors
-                </h4>
-                <div className="grid grid-cols-1 gap-2">
-                  {fcrReference.factors.map((factor, index) => (
-                    <div key={index} className="p-2 bg-white dark:bg-neutral-800 rounded-lg">
-                      <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                        • {factor}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="mt-4 p-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
+              <p className="text-xs text-neutral-600 dark:text-neutral-400 text-center">
+                💡 <strong>Note:</strong> FCR = Total Feed Consumed (kg) ÷ Weight Gain (kg). Lower values indicate better efficiency.
+                {birdType === 'layer' && ' For layers, FCR includes feed per dozen eggs produced.'}
+              </p>
             </div>
           </div>
-          
-          <div className="mt-4 p-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 text-center">
-              💡 <strong>Note:</strong> FCR = Total Feed Consumed (kg) ÷ Weight Gain (kg). Lower values indicate better efficiency.
-              {birdType === 'layer' && ' For layers, FCR includes feed per dozen eggs produced.'}
-            </p>
-          </div>
-        </div>
+        </details>
       )}
 
       {/* Action Buttons */}

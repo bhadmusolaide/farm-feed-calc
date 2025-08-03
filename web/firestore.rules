@@ -5,19 +5,19 @@ service cloud.firestore {
     
     // Feed calculations - users can only access their own data
     match /feed_calculations/{calculationId} {
-      allow read, write, delete: if request.auth != null && 
+      allow read, write, delete: if request.auth != null &&
         (resource == null || resource.data.user_id == request.auth.uid);
     }
     
     // Custom feeds - users can only access their own data
     match /custom_feeds/{feedId} {
-      allow read, write, delete: if request.auth != null && 
+      allow read, write, delete: if request.auth != null &&
         (resource == null || resource.data.user_id == request.auth.uid);
     }
     
     // Custom local mixes - users can only access their own data
     match /custom_local_mixes/{mixId} {
-      allow read, write, delete: if request.auth != null && 
+      allow read, write, delete: if request.auth != null &&
         (resource == null || resource.data.user_id == request.auth.uid);
     }
     
@@ -29,8 +29,27 @@ service cloud.firestore {
     // Global settings - read-only for authenticated users
     match /global_settings/{document} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && 
+      allow write: if request.auth != null &&
         request.auth.token.admin == true; // Only admin users can write
+    }
+
+    // Waitlist - admins only (read and delete)
+    match /waitlist/{docId} {
+      allow read: if request.auth != null && (
+        request.auth.token.admin == true ||    // custom claim
+        request.auth.token.email in get(/databases/$(database)/documents/__env/admins).data.allow // optional allowlist doc
+      );
+
+      allow delete: if request.auth != null && (
+        request.auth.token.admin == true ||
+        request.auth.token.email in get(/databases/$(database)/documents/__env/admins).data.allow
+      );
+
+      // Allow creation from unauthenticated users via API if needed:
+      // If you accept public signups, you can allow create without auth, otherwise require auth.
+      allow create: if true;
+      // If you prefer to restrict create to authenticated only, replace with:
+      // allow create: if request.auth != null;
     }
   }
 }
