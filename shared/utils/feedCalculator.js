@@ -11,24 +11,38 @@ const BIRD_BREEDS = {
   broiler: {
     'Arbor Acres': {
       dailyFeedGrams: {
-        week1: 15, week2: 25, week3: 45, week4: 70, week5: 95, week6: 120
+        week1: 14, week2: 23, week3: 42, week4: 65, week5: 88, week6: 110
       },
       targetWeights: {
-        low: { weight: 1.6, feedMultiplier: 0.85 },
         medium: { weight: 1.8, feedMultiplier: 1.0 },
         aggressive: { weight: 2.2, feedMultiplier: 1.25 },
         premium: { weight: 2.5, feedMultiplier: 1.4 }
+      },
+      fcrTargets: {
+        week1: 1.20, week2: 1.35, week3: 1.50, week4: 1.60, week5: 1.68, week6: 1.72
+      },
+      growthCurve: {
+        maturityDays: 45,
+        maxWeight: 2.5,
+        growthRate: 'moderate'
       }
     },
     'Ross 308': {
       dailyFeedGrams: {
-        week1: 18, week2: 28, week3: 48, week4: 75, week5: 100, week6: 125
+        week1: 20, week2: 32, week3: 52, week4: 80, week5: 108, week6: 135
       },
       targetWeights: {
-        low: { weight: 1.7, feedMultiplier: 0.85 },
         medium: { weight: 1.9, feedMultiplier: 1.0 },
         aggressive: { weight: 2.3, feedMultiplier: 1.25 },
         premium: { weight: 2.5, feedMultiplier: 1.4 }
+      },
+      fcrTargets: {
+        week1: 1.15, week2: 1.30, week3: 1.45, week4: 1.58, week5: 1.65, week6: 1.70
+      },
+      growthCurve: {
+        maturityDays: 42,
+        maxWeight: 2.5,
+        growthRate: 'very_fast'
       }
     },
     'Cobb 500': {
@@ -36,10 +50,17 @@ const BIRD_BREEDS = {
         week1: 16, week2: 26, week3: 46, week4: 72, week5: 98, week6: 122
       },
       targetWeights: {
-        low: { weight: 1.6, feedMultiplier: 0.85 },
         medium: { weight: 1.8, feedMultiplier: 1.0 },
         aggressive: { weight: 2.2, feedMultiplier: 1.25 },
         premium: { weight: 2.5, feedMultiplier: 1.4 }
+      },
+      fcrTargets: {
+        week1: 1.18, week2: 1.32, week3: 1.48, week4: 1.62, week5: 1.70, week6: 1.75
+      },
+      growthCurve: {
+        maturityDays: 42,
+        maxWeight: 2.5,
+        growthRate: 'fast'
       }
     }
   },
@@ -72,7 +93,7 @@ const REARING_ADJUSTMENTS = {
     maxBirds: 10
   },
   commercial: {
-    feedMultiplier: 1.0, // Standard feeding
+    feedMultiplier: 1.05, // reduced to 5% to avoid compounding with aggressive multipliers
     maxBirds: Infinity
   }
 };
@@ -106,9 +127,137 @@ const ENVIRONMENTAL_ADJUSTMENTS = {
  * @param {string} environmental.season - 'dry', 'wet', or 'harmattan'
  * @returns {Object} Environmental adjustment data
  */
-export function calculateEnvironmentalAdjustment(environmental = {}) {
+/**
+ * Calculate age-progressive feed multiplier for target weight plans
+ * Starts conservative in early weeks and increases over time for better FCR
+ * @param {number} ageInDays - Age of birds in days
+ * @param {string} targetWeight - Target weight plan (medium, aggressive, premium)
+ * @param {number} baseMultiplier - Base multiplier from target weight configuration
+ * @returns {number} Age-adjusted multiplier
+ */
+/**
+ * Calculate sigmoid growth curve for more accurate weight predictions
+ * @param {number} ageInDays - Current age in days
+ * @param {number} maxWeight - Target weight at maturity
+ * @param {number} maturityDays - Days to reach target weight
+ * @returns {number} Expected weight using sigmoid curve
+ */
+export function calculateSigmoidGrowth(ageInDays, maxWeight, maturityDays) {
+  // Sigmoid parameters for realistic broiler growth
+  const k = 0.15; // Growth rate parameter
+  const midpoint = maturityDays * 0.6; // Growth inflection point at ~60% of cycle
+  
+  // Sigmoid formula: weight = maxWeight / (1 + e^(-k * (age - midpoint)))
+  const exponent = -k * (ageInDays - midpoint);
+  const sigmoidValue = 1 / (1 + Math.exp(exponent));
+  
+  return Math.min(maxWeight * sigmoidValue, maxWeight);
+}
+
+/**
+ * Calculate breed-specific feed adjustment based on genetic potential
+ * @param {string} breed - Breed name
+ * @param {string} targetWeight - Target weight plan
+ * @returns {number} Breed-specific adjustment multiplier
+ */
+/**
+ * Calculate dynamic FCR-based feed adjustment for performance optimization
+ * @param {number} currentFCR - Current measured FCR
+ * @param {number} targetFCR - Target FCR for the age/breed
+ * @param {number} ageInDays - Current age in days
+ * @returns {Object} FCR adjustment recommendations
+ */
+export function calculateDynamicFCRAdjustment(currentFCR, targetFCR, ageInDays) {
+  const fcrDeviation = currentFCR - targetFCR;
+  const week = Math.ceil(ageInDays / 7);
+  
+  let feedAdjustment = 1.0;
+  let recommendations = [];
+  
+  if (fcrDeviation > 0.3) {
+    // FCR significantly worse than target
+    feedAdjustment = 0.95; // Reduce feed by 5%
+    recommendations.push('Reduce feed quantity - FCR indicates overfeeding');
+    recommendations.push('Check for feed wastage and spillage');
+    recommendations.push('Verify feed quality and freshness');
+  } else if (fcrDeviation > 0.1) {
+    // FCR moderately worse than target
+    feedAdjustment = 0.98; // Reduce feed by 2%
+    recommendations.push('Slight feed reduction recommended');
+    recommendations.push('Monitor feeding behavior and environment');
+  } else if (fcrDeviation < -0.2) {
+    // FCR much better than target (possible underfeeding)
+    feedAdjustment = 1.05; // Increase feed by 5%
+    recommendations.push('Consider increasing feed - birds may be underfed');
+    recommendations.push('Monitor weight gain and body condition');
+  } else if (fcrDeviation < -0.1) {
+    // FCR better than target
+    feedAdjustment = 1.02; // Slight increase
+    recommendations.push('FCR excellent - consider slight feed increase for optimal growth');
+  } else {
+    // FCR within acceptable range
+    recommendations.push('FCR within target range - maintain current feeding');
+  }
+  
+  return {
+    feedAdjustment,
+    fcrDeviation,
+    status: fcrDeviation > 0.2 ? 'Poor' : fcrDeviation > 0 ? 'Below Target' : 
+            fcrDeviation < -0.15 ? 'Excellent' : 'Good',
+    recommendations,
+    nextReviewDays: week <= 2 ? 3 : week <= 4 ? 5 : 7
+  };
+}
+
+export function calculateBreedSpecificAdjustment(breed, targetWeight) {
+  // Breed feed consumption factors based on real-world performance data
+  // Ross 308: Fastest growth, highest feed consumption
+  // Cobb 500: Balanced growth, moderate consumption (baseline)
+  // Arbor Acres: Slower growth, lowest feed consumption
+  const breedFactors = {
+    'Ross 308': {
+      medium: 1.05,    // 5% more feed needed - highest consumption breed
+      aggressive: 1.08, // 8% more feed needed - rapid growth requires more energy
+      premium: 1.12     // 12% more feed needed - intensive feeding for maximum growth
+    },
+    'Arbor Acres': {
+      medium: 0.95,    // 5% less feed needed - most efficient consumption
+      aggressive: 0.97, // 3% less feed needed - slower but efficient growth
+      premium: 1.0      // Standard at premium weights - balanced efficiency
+    },
+    'Cobb 500': {
+      medium: 1.0,     // Baseline - balanced breed serves as standard
+      aggressive: 1.02, // 2% more feed needed - moderate increase for aggressive growth
+      premium: 1.05     // 5% more feed needed - reasonable increase for premium weights
+    }
+  };
+  
+  return breedFactors[breed]?.[targetWeight] || 1.0;
+}
+
+export function calculateAgeProgressiveMultiplier(ageInDays, targetWeight, baseMultiplier) {
+  // Updated unified plan multipliers (constant over age):
+  // Medium = 0.93×, Aggressive = 1.00×, Premium = 1.07×
+  const planBase = {
+    medium: 1.05,
+    aggressive: 1.25,
+    premium: 1.40
+  };
+  return planBase[targetWeight] ?? (baseMultiplier || 1.0);
+}
+
+export function calculateEnvironmentalAdjustment(environmental = {}, targetWeight = 'medium') {
   let totalMultiplier = 1.0;
   const factors = [];
+  
+  // Target weight sensitivity factors
+  const sensitivityFactors = {
+    medium: 1.0,     // Standard sensitivity
+    aggressive: 1.1, // 10% more sensitive to environmental changes
+    premium: 1.2     // 20% more sensitive - intensive feeding requires better control
+  };
+  
+  const sensitivity = sensitivityFactors[targetWeight] || 1.0;
   
   // Temperature adjustment
   if (environmental.temperature !== undefined) {
@@ -127,8 +276,9 @@ export function calculateEnvironmentalAdjustment(environmental = {}) {
       tempFactor = ENVIRONMENTAL_ADJUSTMENTS.temperature.hot;
     }
     
-    totalMultiplier *= tempFactor.multiplier;
-    factors.push({ type: 'temperature', factor: tempFactor.multiplier, description: tempFactor.description });
+    const adjustedMultiplier = 1 + ((tempFactor.multiplier - 1) * sensitivity);
+    totalMultiplier *= adjustedMultiplier;
+    factors.push({ type: 'temperature', factor: adjustedMultiplier, description: tempFactor.description + (sensitivity > 1 ? ' (enhanced for target weight)' : '') });
   }
   
   // Humidity adjustment
@@ -144,16 +294,18 @@ export function calculateEnvironmentalAdjustment(environmental = {}) {
       humidityFactor = ENVIRONMENTAL_ADJUSTMENTS.humidity.high;
     }
     
-    totalMultiplier *= humidityFactor.multiplier;
-    factors.push({ type: 'humidity', factor: humidityFactor.multiplier, description: humidityFactor.description });
+    const adjustedHumidityMultiplier = 1 + ((humidityFactor.multiplier - 1) * sensitivity);
+    totalMultiplier *= adjustedHumidityMultiplier;
+    factors.push({ type: 'humidity', factor: adjustedHumidityMultiplier, description: humidityFactor.description + (sensitivity > 1 ? ' (enhanced for target weight)' : '') });
   }
   
   // Seasonal adjustment
   if (environmental.season) {
     const seasonFactor = ENVIRONMENTAL_ADJUSTMENTS.season[environmental.season];
     if (seasonFactor) {
-      totalMultiplier *= seasonFactor.multiplier;
-      factors.push({ type: 'season', factor: seasonFactor.multiplier, description: seasonFactor.description });
+      const adjustedSeasonMultiplier = 1 + ((seasonFactor.multiplier - 1) * sensitivity);
+      totalMultiplier *= adjustedSeasonMultiplier;
+      factors.push({ type: 'season', factor: adjustedSeasonMultiplier, description: seasonFactor.description + (sensitivity > 1 ? ' (enhanced for target weight)' : '') });
     }
   }
   
@@ -227,41 +379,39 @@ export function calculatePerformanceBenchmark(params) {
 }
 
 /**
- * Get feed type/stage based on bird type, age, and feeding system
+ * Get feed type/stage using unified phase map (no feedingSystem option)
+ * Unified phases:
+ *  - Day 1–14: 'pre-starter'
+ *  - Day 15–28: 'starter'
+ *  - Day 29+:   'finisher'
+ * Layers still return 'starter'/'grower'/'layer' based on age bands used elsewhere.
  * @param {string} birdType - 'broiler' or 'layer'
  * @param {number} ageInDays - Age of birds in days
- * @param {string} feedingSystem - '2-phase' (Nigeria-Standard) or '3-phase' (International)
- * @returns {string} Feed type: 'starter', 'grower', 'finisher', or 'layer'
+ * @returns {string} Feed type
  */
-export function getFeedType(birdType, ageInDays, feedingSystem = '2-phase') {
+export function getFeedType(birdType, ageInDays) {
   if (birdType === 'layer') {
+    // Keep existing layer mapping
     return ageInDays < 126 ? (ageInDays <= 28 ? 'starter' : 'grower') : 'layer';
-  } else {
-    // Broiler feeding systems
-    if (feedingSystem === '2-phase') {
-      // Nigeria-Standard: Starter (0-5 weeks) → Finisher (5+ weeks)
-      return ageInDays <= 35 ? 'starter' : 'finisher';
-    } else {
-      // International 3-phase: Starter → Grower → Finisher
-      if (ageInDays <= 28) return 'starter';
-      else if (ageInDays <= 42) return 'grower';
-      else return 'finisher';
-    }
   }
+  // Broiler unified mapping
+  if (ageInDays <= 14) return 'pre-starter';
+  if (ageInDays <= 28) return 'starter';
+  return 'finisher';
 }
 
 /**
- * Get protein percentage based on bird type, age, and feeding system
+ * Get protein percentage based on unified feed type and age
  * @param {string} birdType - 'broiler' or 'layer'
  * @param {number} ageInDays - Age of birds in days
- * @param {string} feedingSystem - '2-phase' (Nigeria-Standard) or '3-phase' (International)
  * @returns {number} Protein percentage
  */
-export function getProtein(birdType, ageInDays, feedingSystem = '2-phase') {
-  const feedType = getFeedType(birdType, ageInDays, feedingSystem);
+export function getProtein(birdType, ageInDays) {
+  const feedType = getFeedType(birdType, ageInDays);
   
-  // Standard protein percentages based on feed type
+  // Standard protein percentages based on unified feed type
   const proteinLevels = {
+    'pre-starter': 23,
     starter: 22,
     grower: 19,
     finisher: 17,
@@ -280,10 +430,58 @@ export function getProtein(birdType, ageInDays, feedingSystem = '2-phase') {
  * @param {number} params.quantity - Number of birds
  * @param {string} params.rearingStyle - 'backyard' or 'commercial'
  * @param {string} params.targetWeight - 'low', 'medium', 'aggressive' (broilers only)
- * @param {string} params.feedingSystem - '2-phase' (Nigeria-Standard) or '3-phase' (International)
  * @param {Object} params.environmental - Environmental conditions (optional)
  * @returns {Object} Feed calculation results
  */
+/**
+ * Calculate daily progressive feed amount based on industry standards
+ * Day 1-7: Start low (17g), increase +2g/day
+ * Day 8-21: +3-5g/day progressive increase
+ * Day 22-42: +6-8g/day progressive increase
+ */
+function calculateDailyProgressiveFeed(ageInDays, birdType, breed) {
+  if (birdType === 'layer') {
+    // For layers, use existing weekly system as it's more appropriate
+    const week = Math.ceil(ageInDays / 7);
+    const weekKey = week <= 10 ? `week${week}` : 'adult';
+    const breedData = BIRD_BREEDS[birdType][breed];
+    return breedData.dailyFeedGrams[weekKey] || breedData.dailyFeedGrams.adult || 125;
+  }
+
+  // Unified broiler baseline per-bird curve (applies to all plans; plan multipliers applied later):
+  // Days 1–14: 20 → 25 g (linear)
+  // Days 15–28: 70 → 90 g (linear)
+  // Days 29–42: 100 → 130 g (linear)
+  // Days 43–56: 130 → 150 g (linear)
+  // After 56: hold at 150 g (flat)
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  let dailyFeed;
+
+  if (ageInDays <= 0) {
+    dailyFeed = 20; // guard
+  } else if (ageInDays <= 14) {
+    // 14-day ramp: start 20 at day1, reach 25 at day14
+    const t = (ageInDays - 1) / (14 - 1);
+    dailyFeed = 20 + t * (25 - 20);
+  } else if (ageInDays <= 28) {
+    // 14-day ramp: 70 at day15 to 90 at day28
+    const t = (ageInDays - 15) / (28 - 15);
+    dailyFeed = 70 + t * (90 - 70);
+  } else if (ageInDays <= 42) {
+    // 14-day ramp: 100 at day29 to 130 at day42
+    const t = (ageInDays - 29) / (42 - 29);
+    dailyFeed = 100 + t * (130 - 100);
+  } else if (ageInDays <= 56) {
+    // 14-day ramp: 130 at day43 to 150 at day56
+    const t = (ageInDays - 43) / (56 - 43);
+    dailyFeed = 130 + t * (150 - 130);
+  } else {
+    dailyFeed = 150; // hold flat beyond 8 weeks
+  }
+
+  return Math.round(clamp(dailyFeed, 0, 1000));
+}
+
 export function calculateFeed(params) {
   const {
     birdType,
@@ -292,8 +490,8 @@ export function calculateFeed(params) {
     quantity,
     rearingStyle,
     targetWeight = 'medium',
-    feedingSystem = '2-phase',
-    environmental = {}
+    environmental = {},
+    useProgressiveFeeding = true // New parameter to enable/disable progressive feeding
   } = params;
 
   // Validate inputs
@@ -312,20 +510,23 @@ export function calculateFeed(params) {
   const breedData = BIRD_BREEDS[birdType][breed];
   const rearingData = REARING_ADJUSTMENTS[rearingStyle];
   
-  // Get base daily feed per bird
-  let baseFeedPerBird = breedData.dailyFeedGrams[weekKey] || breedData.dailyFeedGrams.adult || 125;
-  
-  // Apply target weight multiplier for broilers
-  if (birdType === 'broiler' && breedData.targetWeights && breedData.targetWeights[targetWeight]) {
-    baseFeedPerBird *= breedData.targetWeights[targetWeight].feedMultiplier;
+  // Get base daily feed per bird using progressive feeding or weekly system
+  let baseFeedPerBird;
+  if (useProgressiveFeeding && birdType === 'broiler') {
+    baseFeedPerBird = calculateDailyProgressiveFeed(ageInDays, birdType, breed);
+  } else {
+    baseFeedPerBird = breedData.dailyFeedGrams[weekKey] || breedData.dailyFeedGrams.adult || 125;
   }
   
-  // Apply rearing style adjustment
-  let adjustedFeedPerBird = baseFeedPerBird * rearingData.feedMultiplier;
+  // Apply age-progressive target weight multiplier for broilers
+  if (birdType === 'broiler' && breedData.targetWeights && breedData.targetWeights[targetWeight]) {
+    const progressiveMultiplier = calculateAgeProgressiveMultiplier(ageInDays, targetWeight, breedData.targetWeights[targetWeight].feedMultiplier);
+    const breedAdjustment = calculateBreedSpecificAdjustment(breed, targetWeight);
+    baseFeedPerBird *= progressiveMultiplier * breedAdjustment;
+  }
   
-  // Apply environmental adjustments
-  const environmentalAdjustment = calculateEnvironmentalAdjustment(environmental);
-  adjustedFeedPerBird *= environmentalAdjustment.totalMultiplier;
+  // Remove rearing/environment effects as requested; only plan and breed multipliers remain
+  let adjustedFeedPerBird = baseFeedPerBird;
   
   // Round to nearest gram
   adjustedFeedPerBird = Math.round(adjustedFeedPerBird);
@@ -351,13 +552,14 @@ export function calculateFeed(params) {
     breed,
     rearingStyle,
     targetWeight: birdType === 'broiler' ? targetWeight : null,
-    environmentalAdjustment: environmentalAdjustment.factors.length > 0 ? environmentalAdjustment : null,
+    environmentalAdjustment: null,
     baseFeedPerBird: Math.round(baseFeedPerBird),
     adjustmentFactors: {
-      rearing: rearingData.feedMultiplier,
-      environmental: environmentalAdjustment.totalMultiplier,
-      targetWeight: birdType === 'broiler' && breedData.targetWeights?.[targetWeight] ? 
-                   breedData.targetWeights[targetWeight].feedMultiplier : 1.0
+      rearing: 1.0,
+      environmental: 1.0,
+      targetWeight: birdType === 'broiler' && breedData.targetWeights?.[targetWeight] ?
+                   calculateAgeProgressiveMultiplier(ageInDays, targetWeight, breedData.targetWeights[targetWeight].feedMultiplier) : 1.0,
+      breedSpecific: birdType === 'broiler' ? calculateBreedSpecificAdjustment(breed, targetWeight) : 1.0
     }
   };
 }
@@ -369,28 +571,65 @@ export function calculateFeed(params) {
  * @param {number} totalDailyFeedCups - Total daily feed in cups
  * @returns {Object} Feeding schedule
  */
-export function generateFeedingSchedule(ageInDays, birdType, totalDailyFeedCups) {
-  let mealsPerDay, times;
+export function generateFeedingSchedule(ageInDays, birdType, totalDailyFeedCups, targetWeight = 'medium') {
+  let mealsPerDay, times, feedingType;
   
+  // Commercial-optimized feeding frequency based on research best practices
   if (ageInDays <= 14) {
-    // Chicks: 4-5 meals per day
-    mealsPerDay = 5;
-    times = ['6:00 AM', '9:00 AM', '12:00 PM', '3:00 PM', '6:00 PM'];
+    // Chicks (0-2 weeks): Ad-libitum feeding recommended
+    feedingType = 'ad-libitum';
+    mealsPerDay = 'continuous';
+    times = ['Continuous access - refill as needed'];
   } else if (ageInDays <= 28) {
-    // Young birds: 3-4 meals per day
+    // Young birds (3-4 weeks): 4 meals per day
+    feedingType = 'scheduled';
+    mealsPerDay = 4;
+    times = ['6:00 AM', '11:00 AM', '2:00 PM', '6:00 PM'];
+  } else if (ageInDays <= 42) {
+    // Grower phase (5-6 weeks): 4 meals per day
+    feedingType = 'scheduled';
     mealsPerDay = 4;
     times = ['6:00 AM', '11:00 AM', '2:00 PM', '6:00 PM'];
   } else {
-    // Adult birds: 2-3 meals per day
+    // Finisher phase (7+ weeks): 3 meals per day
+    feedingType = 'scheduled';
     mealsPerDay = 3;
     times = ['6:00 AM', '12:00 PM', '6:00 PM'];
   }
   
+  // For ad-libitum feeding, return special schedule
+  if (feedingType === 'ad-libitum') {
+    return {
+      mealsPerDay: 'continuous',
+      feedingType: 'ad-libitum',
+      feedPerMeal: 'as needed',
+      feedPerMealGrams: 'as needed',
+      times,
+      totalDailyFeedCups,
+      totalDailyFeedGrams: Math.round(totalDailyFeedCups * FEED_CONSTANTS.GRAMS_PER_CUP),
+      schedule: [{
+        time: 'Continuous',
+        feedCups: 'Keep feeders full',
+        feedGrams: 'Monitor consumption',
+        meal: 'Ad-libitum',
+        note: 'Provide continuous access to feed. Monitor daily consumption and refill as needed.'
+      }],
+      recommendations: [
+        'Ensure feeders are always full during daylight hours',
+        'Monitor daily feed consumption closely',
+        'Provide 23-24 hours of light to encourage frequent feeding',
+        'Check feeders every 2-3 hours during active periods'
+      ]
+    };
+  }
+  
+  // For scheduled feeding
   const feedPerMeal = Math.round((totalDailyFeedCups / mealsPerDay) * 100) / 100;
   const feedPerMealGrams = Math.round((feedPerMeal * FEED_CONSTANTS.GRAMS_PER_CUP) * 100) / 100;
   
   return {
     mealsPerDay,
+    feedingType: 'scheduled',
     feedPerMeal,
     feedPerMealGrams,
     times,
@@ -429,10 +668,9 @@ export function calculateExpectedWeight(params) {
       return null;
     }
     
-    // Linear growth approximation for broilers (6-week cycle)
+    // Sigmoid growth curve for broilers (more accurate than linear)
     const maxWeight = targetData.weight; // Weight at 6 weeks
-    const growthRate = maxWeight / 42; // kg per day
-    const expectedWeight = Math.min(growthRate * ageInDays, maxWeight);
+    const expectedWeight = calculateSigmoidGrowth(ageInDays, maxWeight, 42);
     
     return {
       expectedWeight: Math.round(expectedWeight * 100) / 100,
@@ -442,7 +680,9 @@ export function calculateExpectedWeight(params) {
       },
       targetWeight: maxWeight,
       growthStage: week <= 2 ? 'Starter' : week <= 4 ? 'Grower' : 'Finisher',
-      weeklyGain: Math.round((growthRate * 7) * 100) / 100
+      weeklyGain: ageInDays >= 7 ? 
+        Math.round((expectedWeight - calculateSigmoidGrowth(ageInDays - 7, maxWeight, 42)) * 100) / 100 : 
+        Math.round((expectedWeight * 0.1) * 100) / 100 // Estimated for first week
     };
   } else if (birdType === 'layer') {
     // Layer weight calculation (slower growth, longer cycle)
@@ -489,25 +729,27 @@ export function getFCRReference(birdType, ageInDays) {
   if (birdType === 'broiler') {
     return {
       industryStandard: {
-        excellent: '1.4 - 1.6',
-        good: '1.6 - 1.8',
-        average: '1.8 - 2.0',
-        poor: '2.0+'
+        excellent: '1.55 - 1.65',
+        good: '1.65 - 1.75',
+        average: '1.75 - 1.85',
+        poor: '1.85+'
       },
-      currentWeekTarget: week <= 2 ? '1.2 - 1.4' : week <= 4 ? '1.5 - 1.7' : '1.6 - 1.9',
+      currentWeekTarget: week <= 2 ? '1.15 - 1.35' : week <= 4 ? '1.45 - 1.65' : '1.65 - 1.75',
       tips: [
         'Monitor feed wastage - spillage increases FCR',
         'Ensure consistent feed quality and freshness',
         'Maintain optimal temperature (20-24°C for adults)',
         'Provide adequate ventilation to reduce stress',
-        'Regular health monitoring prevents FCR deterioration'
+        'Regular health monitoring prevents FCR deterioration',
+        'Target FCR of 1.65-1.75 for commercial broilers at market weight'
       ],
       factors: [
         'Feed quality and composition',
         'Environmental temperature',
         'Bird health and genetics',
         'Management practices',
-        'Water quality and availability'
+        'Water quality and availability',
+        'Breed-specific genetic potential'
       ]
     };
   } else if (birdType === 'layer') {
@@ -681,27 +923,15 @@ export function calculateFCR({ birdType, ageInDays, currentWeight, totalFeedCons
  * @returns {Object} Cost breakdown with total and per kg rate
  */
 export function calculateFeedCost(birdType, ageInDays, weeklyFeedKg) {
-  // Current market prices (₦ per 25kg bag)
-  const FEED_PRICES = {
-    starter: { pricePerBag: 25500, bagSizeKg: 25 }, // ₦25,500 for 25kg - Most expensive
-    grower: { pricePerBag: 24500, bagSizeKg: 25 },  // ₦24,500 for 25kg - Between starter and finisher
-    finisher: { pricePerBag: 24000, bagSizeKg: 25 }, // ₦24,000 for 25kg - Medium price
-    layer: { pricePerBag: 22000, bagSizeKg: 25 }     // ₦22,000 for 25kg - Lowest price
-  };
+  // Use the unified getFeedType function for consistency
+  const feedType = getFeedType(birdType, ageInDays);
 
-  // Use the existing getFeedType function for consistency
-  const feedType = getFeedType(birdType, ageInDays, '2-phase');
-  
-  let pricePerKg;
-  
-  // Get price based on feed type
-  if (FEED_PRICES[feedType]) {
-    pricePerKg = FEED_PRICES[feedType].pricePerBag / FEED_PRICES[feedType].bagSizeKg;
-  } else {
-    // Fallback to starter price if feed type not found
-    pricePerKg = FEED_PRICES.starter.pricePerBag / FEED_PRICES.starter.bagSizeKg;
-  }
+  // Lazy import to avoid circular dependencies if any consumer imports both modules
+  // and to keep pricing centralized in shared/utils/pricingConfig.js
+  // Note: dynamic import ensures compatibility in both web and mobile bundlers.
+  const { getPricePerKg } = require('./pricingConfig.js');
 
+  const pricePerKg = getPricePerKg(feedType);
   const totalCost = Math.round(weeklyFeedKg * pricePerKg);
 
   return {

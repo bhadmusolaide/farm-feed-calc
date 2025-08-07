@@ -44,6 +44,53 @@ The Feed Calculator application has been successfully prepared for production de
 - [x] Added clean and type-check scripts
 - [x] Added export capability for static hosting
 
+## Domain Constraints and Business Rules
+
+- Rearing styles are restricted to:
+  - backyard
+  - commercial
+  Enforcement is implemented in [shared/utils/errorHandling.js](shared/utils/errorHandling.js:124). Any other value will raise a validation error. Web and mobile pickers expose only these two options.
+
+- Progressive feeding for broilers:
+  - Shared logic defaults to progressive feeding; see [shared/utils/feedCalculator.js](shared/utils/feedCalculator.js:523).
+  - Mobile logic explicitly enforces progressive feeding; see [mobile/lib/feedCalculator.js](mobile/lib/feedCalculator.js:196).
+  There is no UI toggle to disable progressive feeding.
+
+## Centralized Pricing Configuration
+
+- Pricing lives in [shared/utils/pricingConfig.js](shared/utils/pricingConfig.js:1)
+  - FEED_PRICES provides pricePerBag and bagSizeKg per band
+  - getPricePerKg(feedType) computes price per kg
+  - updateFeedPrice(feedType, { pricePerBag, bagSizeKg }) allows runtime updates (e.g., admin tools)
+
+- Cost integration uses centralized pricing in [shared/utils/feedCalculator.js](shared/utils/feedCalculator.js:939).
+
+Example runtime update:
+```js
+import { updateFeedPrice } from '../shared/utils/pricingConfig.js';
+updateFeedPrice('starter', { pricePerBag: 26000, bagSizeKg: 25 });
+```
+
+## Performance
+
+- Feed progression memoization reduces redundant per-day computations:
+  - Implemented in [shared/utils/feedProgression.js](shared/utils/feedProgression.js:30)
+  - Cache key includes birdType, breed, rearingStyle, targetWeight, quantity, feedingSystem, environmental, and day
+
+## Testing
+
+- Jest configured at repo root with babel-jest transform for ESM syntax:
+  - Config: [jest.config.js](jest.config.js:1)
+  - Scripts: [package.json](package.json:10) leverage Node VM modules for compatibility
+  - Babel preset targets current Node in [package.json](package.json:50)
+  - Tests: ./tests covering validation, pricing, and progression memoization
+
+Run:
+```bash
+npm install
+npm test
+```
+
 ## 📊 Build Results
 
 ```

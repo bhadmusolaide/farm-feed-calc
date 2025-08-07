@@ -35,7 +35,6 @@ export const useUnifiedStore = create(
         quantity: 50,
         rearingStyle: 'commercial',
         targetWeight: 'medium',
-        feedingSystem: '2-phase', // Default to Nigeria-Standard
         
         // Calculation results
         feedResults: null,
@@ -49,7 +48,19 @@ export const useUnifiedStore = create(
         favorites: [],
         customFeeds: FEED_BRANDS, // Initialize with commercial feed brands
         localMixes: LOCAL_FEED_MIXES, // Initialize with local feed mixes
-        userSettings: {},
+
+        // Per-user settings persisted locally
+        userSettings: {
+          featureVisibility: {
+            feedResults: {
+              showFeedQuantity: true,
+              showFeedingSchedule: true,
+              showWeeklySummary: true,
+              showProgressionTracker: true,
+              showFCRReference: true,
+            }
+          }
+        },
         
         // Site settings
         currency: 'NGN',
@@ -97,8 +108,24 @@ export const useUnifiedStore = create(
         setQuantity: (quantity) => set({ quantity }),
         setRearingStyle: (rearingStyle) => set({ rearingStyle }),
         setTargetWeight: (targetWeight) => set({ targetWeight }),
-        setFeedingSystem: (feedingSystem) => set({ feedingSystem }),
         setActiveTab: (activeTab) => set({ activeTab }),
+
+        // Settings: update per-user Feed Results feature visibility (admin UI will call this)
+        setFeedResultsVisibility: (partial) => {
+          const current = get().userSettings?.featureVisibility?.feedResults || {};
+          set({
+            userSettings: {
+              ...(get().userSettings || {}),
+              featureVisibility: {
+                ...(get().userSettings?.featureVisibility || {}),
+                feedResults: {
+                  ...current,
+                  ...partial
+                }
+              }
+            }
+          });
+        },
 
         // Reset form inputs to defaults
         resetForm: () => {
@@ -110,7 +137,6 @@ export const useUnifiedStore = create(
             quantity: 50,
             rearingStyle: 'commercial',
             targetWeight: 'medium',
-            feedingSystem: '2-phase',
             showResults: false,
             activeTab: 'calculator'
           });
@@ -132,8 +158,7 @@ export const useUnifiedStore = create(
               ageInDays: state.ageInDays,
               quantity: state.quantity,
               rearingStyle: state.rearingStyle,
-              targetWeight: state.targetWeight,
-              feedingSystem: state.feedingSystem
+              targetWeight: state.targetWeight
             });
             
             // Generate feeding schedule
@@ -389,8 +414,7 @@ export const useUnifiedStore = create(
               ageInDays: currentAge,
               quantity: calculation.currentQuantity || calculation.quantity,
               rearingStyle: calculation.rearingStyle,
-              targetWeight: calculation.targetWeight,
-              feedingSystem: calculation.feedingSystem || '2-phase'
+              targetWeight: calculation.targetWeight
             });
             
             return {
@@ -400,8 +424,8 @@ export const useUnifiedStore = create(
               calculatedFor: new Date().toISOString().split('T')[0],
               totalFeedKg: feedResults.total.grams / 1000,
               feedPerBirdGrams: feedResults.perBird.grams,
-              feedType: getFeedType(calculation.birdType, currentAge, calculation.feedingSystem || '2-phase'),
-              protein: getProtein(calculation.birdType, currentAge, calculation.feedingSystem || '2-phase'),
+              feedType: getFeedType(calculation.birdType, currentAge),
+              protein: getProtein(calculation.birdType, currentAge),
               mortalityRate: calculation.mortalityLog?.length || 0
             };
           } catch (error) {
@@ -795,6 +819,17 @@ export const useUnifiedStore = create(
                 url: '',
                 title: 'Watch Our Demo'
               },
+              // New global visibility toggles for Feed Results sections (default all true)
+              feedResultsVisibility: {
+                showFeedQuantity: true,
+                showFeedingSchedule: true,
+                showWeeklySummary: true,
+                showProgressionTracker: true,
+                showFCRReference: true,
+                // New standalone flags
+                showOptimizationInsights: true,
+                showBestPractices: true
+              },
               logoVersion: Date.now()
             };
 
@@ -809,32 +844,42 @@ export const useUnifiedStore = create(
           }
         },
 
-        // Renamed to avoid collision with per-user updateSettings.
-        updateGlobalSettings: async (newSettings) => {
+        updateSettings: async (newSettings) => {
           try {
             set({ isLoadingGlobal: true, error: null });
-    
+
             // Merge with existing in-memory settings
             const currentSettings = get().globalSettings || {};
-            const updatedSettings = { ...currentSettings, ...newSettings };
-    
-            // Persist to Firestore (global)
+
+            // If caller passes nested feedResultsVisibility, merge deeply for that object to avoid clobbering missing keys
+            const nextFRV = {
+              ...(currentSettings.feedResultsVisibility || {}),
+              ...(newSettings.feedResultsVisibility || {})
+            };
+
+            const updatedSettings = {
+              ...currentSettings,
+              ...newSettings,
+              ...(Object.keys(nextFRV).length > 0 ? { feedResultsVisibility: nextFRV } : {})
+            };
+
+            // Persist to Firestore
             const { doc, setDoc } = await import('firebase/firestore');
             const { db } = await import('./firebase');
             const settingsDocRef = doc(db, 'global_settings', 'site');
             await setDoc(settingsDocRef, updatedSettings, { merge: true });
-    
+
             // Reflect in store
             set({ globalSettings: updatedSettings, isLoadingGlobal: false });
-    
-            // Keep local mirror for backward compatibility
+
+            // Also update user settings in the store (kept for backward compatibility)
             const currentUserSettings = get().settings || {};
             const updatedUserSettings = { ...currentUserSettings, ...newSettings };
             set({ settings: updatedUserSettings });
-    
+
             return updatedSettings;
           } catch (error) {
-            console.error('Error updating global settings:', error);
+            console.error('Error updating settings:', error);
             set({ isLoadingGlobal: false, error: error?.message || 'Failed to update settings' });
             throw error;
           }
@@ -893,7 +938,6 @@ export const useUnifiedStore = create(
         quantity: state.quantity,
         rearingStyle: state.rearingStyle,
         targetWeight: state.targetWeight,
-        feedingSystem: state.feedingSystem,
         activeTab: state.activeTab
       })
     }
@@ -911,8 +955,7 @@ export const getAvailableBreeds = (birdType) => {
 export const getTargetWeightOptions = (breed) => {
   
   const targetWeightLabels = {
-    low: '1.6kg @ 6 weeks (Low feed plan)',
-    medium: '1.8kg @ 6 weeks (Medium feed plan)',
+    medium: '1.8kg @ 6 weeks (Standard feed plan)',
     aggressive: '2.2kg+ @ 6 weeks (Aggressive feed plan)',
     premium: '2.5kg @ 6 weeks (Premium feed plan)'
   };
@@ -926,8 +969,7 @@ export const getTargetWeightOptions = (breed) => {
         label: targetWeightLabels[key] || `${data.weight}kg @ 6 weeks (${key} plan)`,
         weight: data.weight,
         feedMultiplier: data.feedMultiplier,
-        description: key === 'low' ? 'Conservative growth target' :
-                    key === 'medium' ? 'Standard growth target' :
+        description: key === 'medium' ? 'Standard growth target' :
                     key === 'aggressive' ? 'High growth target' :
                     key === 'premium' ? 'Maximum growth target' : 'Custom plan'
       }));
@@ -936,8 +978,7 @@ export const getTargetWeightOptions = (breed) => {
   
   // Default fallback for layers or when breed not specified
   return [
-    { value: 'low', label: '1.6kg @ 6 weeks (Low feed plan)', weight: 1.6, feedMultiplier: 0.85, description: 'Conservative growth target' },
-    { value: 'medium', label: '1.8kg @ 6 weeks (Medium feed plan)', weight: 1.8, feedMultiplier: 1.0, description: 'Standard growth target' },
+    { value: 'medium', label: '1.8kg @ 6 weeks (Standard feed plan)', weight: 1.8, feedMultiplier: 1.0, description: 'Standard growth target' },
     { value: 'aggressive', label: '2.2kg+ @ 6 weeks (Aggressive feed plan)', weight: 2.2, feedMultiplier: 1.25, description: 'High growth target' },
     { value: 'premium', label: '2.5kg @ 6 weeks (Premium feed plan)', weight: 2.5, feedMultiplier: 1.4, description: 'Maximum growth target' }
   ];

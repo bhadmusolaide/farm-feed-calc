@@ -14,34 +14,20 @@ import WaitlistAdmin from '../../components/WaitlistAdmin';
 export default function SettingsPage() {
   const router = useRouter();
   const { isAuthenticated, signOut, user, userProfile } = useFirebaseAuthStore();
-  // Unified admin flag (single source of truth) - used across effects and guard
-  const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-    .split(',')
-    .map(e => e.trim().toLowerCase())
-    .filter(Boolean);
-  const isEmailAdmin = user?.email ? ADMIN_EMAILS.includes(user.email.toLowerCase()) : false;
-  const isClaimAdmin = user?.customClaims?.admin === true;
-  const isRoleAdmin =
-    !!(userProfile?.is_admin ||
-       userProfile?.admin ||
-       (Array.isArray(userProfile?.roles) && userProfile.roles.includes('admin')) ||
-       userProfile?.role === 'admin');
-  const isAdmin = !!(isRoleAdmin || isClaimAdmin || isEmailAdmin);
-
-  const {
-    globalSettings,
-    isLoadingGlobal,
+  const { 
+    globalSettings, 
+    isLoadingGlobal, 
     error,
-    updateSettings,
-    resetToDefaults,
+    updateSettings, 
+    resetToDefaults, 
     loadGlobalSettings,
     initialize,
-    customFeeds,
-    localMixes,
-    addCustomFeed,
-    updateCustomFeed,
-    deleteCustomFeed,
-    updateLocalMix,
+    customFeeds, 
+    localMixes, 
+    addCustomFeed, 
+    updateCustomFeed, 
+    deleteCustomFeed, 
+    updateLocalMix, 
     resetCustomFeeds,
     FEED_CATEGORIES,
     PACKAGING_OPTIONS,
@@ -76,140 +62,109 @@ export default function SettingsPage() {
     heroVideoTitle: '',
   });
 
-  // Admin-only: global feeds/local mixes loaded from API
-  const [globalFeeds, setGlobalFeeds] = useState(null);
-  const [globalLocalMixes, setGlobalLocalMixes] = useState(null);
-  const [isLoadingAdminData, setIsLoadingAdminData] = useState(false);
-
-  // Initialize settings on mount:
-  // - Always fetch global settings via API (public read)
-  // - Initialize user store (auth, etc.)
+  // Initialize global settings on component mount and when auth changes
   useEffect(() => {
     let cancelled = false;
 
     const initializeSettings = async () => {
       try {
         await initialize();
-
-        // Fetch global settings via API to ensure canonical global doc
-        const res = await fetch('/api/global-settings', { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          // Store.globalSettings may be used elsewhere; keep local form state in-sync below
-          // We reuse the existing globalSettings state as "last loaded", but the form will derive from fetched data
-          // Optionally, you could add a setGlobalSettings action to the store; here we keep local form state.
-          setFetchedGlobal(data);
-        } else {
-          console.error('Failed to fetch global settings API', await res.text());
-        }
+        // Load global settings from Firebase for site configuration
+        await loadGlobalSettings();
       } catch (err) {
-        console.error('initialize() or global settings fetch failed', err);
+        // Swallow initialize errors, we'll fall back to defaults
+        console.error('initialize() failed, falling back to defaults', err);
       } finally {
-        if (!cancelled) {
-          setIsLoading(false);
+        if (!cancelled && globalSettings) {
+          // If we already have something in globalSettings, the next effect will shape it and stop loading
+          // Otherwise we will still fall back after timeout below
         }
       }
-    };
-
-    // local state holder for fetched global data
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    var setFetchedGlobal = (data) => {
-      // Trigger the downstream effect by setting pseudo-global via component state only
-      setFormData(prev => prev); // no-op; real mapping happens in the next effect using data
-      // Attach to ref to be used when mapping to form
-      fetchedGlobalRef.current = data;
     };
 
     initializeSettings();
-    
-    // If admin, load global feeds and local mixes for management tab
-    const loadAdminData = async () => {
-      if (!isAdmin) return;
-      setIsLoadingAdminData(true);
-      try {
-        const [feedsRes, mixesRes] = await Promise.all([
-          fetch('/api/global-feeds', { cache: 'no-store' }),
-          fetch('/api/global-local-mixes', { cache: 'no-store' }),
-        ]);
-        if (feedsRes.ok) {
-          const feedsJson = await feedsRes.json();
-          setGlobalFeeds(feedsJson.categories || {});
-        }
-        if (mixesRes.ok) {
-          const mixesJson = await mixesRes.json();
-          setGlobalLocalMixes(mixesJson.mixes || []);
-        }
-      } catch (e) {
-        console.error('Failed to load admin global data', e);
-      } finally {
-        setIsLoadingAdminData(false);
+
+    // Safety timeout to prevent endless spinner
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) {
+        setIsLoading(false);
       }
-    };
-    loadAdminData();
+    }, 5000);
 
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
     };
-  }, [initialize]);
+  }, [initialize, isAuthenticated]);
 
-  // Normalize and map global settings (from API) into local form state
-  const fetchedGlobalRef = typeof window !== 'undefined' ? (window.__fetchedGlobalRef ||= { current: null }) : { current: null };
-
+  // When globalSettings changes, normalize shape and stop loading
   useEffect(() => {
+    // Build safe defaults
     const defaults = {
       siteTitle: '',
       siteDescription: '',
       logoUrl: '',
-      footer: { logoUrl: '', description: '', features: [], support: [], copyright: '' },
-      recommendedFeeds: { title: '', description: '' },
-      heroVideo: { enabled: false, url: '', title: '' }
+      footer: {
+        logoUrl: '',
+        description: '',
+        features: [],
+        support: [],
+        copyright: '',
+      },
+      recommendedFeeds: {
+        title: '',
+        description: '',
+      },
+      heroVideo: {
+        enabled: false,
+        url: '',
+        title: '',
+      },
+      // New: global feed results visibility defaults (all true by default)
+      feedResultsVisibility: {
+        showFeedQuantity: true,
+        showFeedingSchedule: true,
+        showWeeklySummary: true,
+        showProgressionTracker: true,
+        showFCRReference: true,
+      },
     };
-  
-    // Start with global fetched defaults
-    const globalBase = fetchedGlobalRef.current ? {
+
+    // Merge incoming settings with defaults to guarantee required shape
+    const gs = globalSettings ? {
       ...defaults,
-      ...fetchedGlobalRef.current,
-      footer: { ...defaults.footer, ...(fetchedGlobalRef.current.footer || {}) },
-      recommendedFeeds: { ...defaults.recommendedFeeds, ...(fetchedGlobalRef.current.recommendedFeeds || {}) },
-      heroVideo: { ...defaults.heroVideo, ...(fetchedGlobalRef.current.heroVideo || {}) },
+      ...globalSettings,
+      footer: { ...defaults.footer, ...(globalSettings.footer || {}) },
+      recommendedFeeds: { ...defaults.recommendedFeeds, ...(globalSettings.recommendedFeeds || {}) },
+      heroVideo: { ...defaults.heroVideo, ...(globalSettings.heroVideo || {}) },
+      feedResultsVisibility: { ...defaults.feedResultsVisibility, ...(globalSettings.feedResultsVisibility || {}) },
     } : defaults;
-  
-    // Overlay per-user overrides for authenticated non-admins using store.userSettings
-    // Note: update when store state changes by reading from useUnifiedStore selector via refetch pattern if needed
-    let overlay = {};
-    try {
-      // Safely access store getter without causing re-render loops
-      // We rely on initialize() having loaded userSettings into the store earlier
-      const store = useUnifiedStore.getState();
-      overlay = store?.userSettings || {};
-    } catch {}
-  
-    const merged = (!isAdmin && isAuthenticated)
-      ? {
-          ...globalBase,
-          ...overlay,
-          footer: { ...globalBase.footer, ...(overlay.footer || {}) },
-          recommendedFeeds: { ...globalBase.recommendedFeeds, ...(overlay.recommendedFeeds || {}) },
-          heroVideo: { ...globalBase.heroVideo, ...(overlay.heroVideo || {}) },
-        }
-      : globalBase;
-  
+
     setFormData({
-      siteTitle: merged.siteTitle,
-      siteDescription: merged.siteDescription,
-      logoUrl: merged.logoUrl,
-      footerLogoUrl: merged.footer.logoUrl,
-      footerDescription: merged.footer.description,
-      footerFeatures: [...(merged.footer.features || [])],
-      footerSupport: [...(merged.footer.support || [])],
-      footerCopyright: merged.footer.copyright,
-      recommendedFeedsTitle: merged.recommendedFeeds.title,
-      recommendedFeedsDescription: merged.recommendedFeeds.description,
-      heroVideoEnabled: merged.heroVideo.enabled,
-      heroVideoUrl: merged.heroVideo.url,
-      heroVideoTitle: merged.heroVideo.title,
+      siteTitle: gs.siteTitle,
+      siteDescription: gs.siteDescription,
+      logoUrl: gs.logoUrl,
+      footerLogoUrl: gs.footer.logoUrl,
+      footerDescription: gs.footer.description,
+      footerFeatures: [...(gs.footer.features || [])],
+      footerSupport: [...(gs.footer.support || [])],
+      footerCopyright: gs.footer.copyright,
+      recommendedFeedsTitle: gs.recommendedFeeds.title,
+      recommendedFeedsDescription: gs.recommendedFeeds.description,
+      heroVideoEnabled: gs.heroVideo.enabled,
+      heroVideoUrl: gs.heroVideo.url,
+      heroVideoTitle: gs.heroVideo.title,
+      // New: bind global visibility to form
+      feedResultsVisibility: {
+        ...gs.feedResultsVisibility,
+        // Backward compatibility defaults in case existing doc lacks new keys
+        showBestPractices: gs.feedResultsVisibility?.showBestPractices ?? true
+      },
     });
-  }, [isAuthenticated, isAdmin]);
+
+    // Stop loading regardless of whether gs came from store or defaults
+    setIsLoading(false);
+  }, [globalSettings]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -242,7 +197,7 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const payload = {
+      await updateSettings({
         siteTitle: formData.siteTitle,
         siteDescription: formData.siteDescription,
         logoUrl: formData.logoUrl,
@@ -262,45 +217,18 @@ export default function SettingsPage() {
           url: formData.heroVideoUrl,
           title: formData.heroVideoTitle,
         },
-      };
-
-      if (isAdmin) {
-        // Admin updates the global settings via API (requires Authorization header sent by client)
-        // The client already maintains auth; retrieve ID token if available
-        let token = null;
-        try {
-          if (typeof window !== 'undefined') {
-            const client = await import('../../lib/firebase');
-            const userAuth = client.auth;
-            const u = userAuth?.currentUser;
-            token = u ? await u.getIdToken(false) : null;
-          }
-        } catch {}
-
-        const res = await fetch('/api/global-settings', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) {
-          const msg = await res.text();
-          throw new Error(msg || 'Failed to save global settings');
-        }
-
-        toast.success('Global settings saved successfully!');
-      } else if (isAuthenticated) {
-        // Non-admin authenticated users save per-user overrides via existing store path
-        await updateSettings(payload);
-        toast.success('Your personal settings were saved!');
-      } else {
-        // Unauthenticated: persist to local storage via store/updateSettings (which should fallback), or manually
-        await updateSettings(payload);
-        toast.success('Settings saved locally for this device!');
-      }
+        // New: persist global feed results visibility
+        feedResultsVisibility: {
+          showFeedQuantity: !!formData.feedResultsVisibility?.showFeedQuantity,
+          showFeedingSchedule: !!formData.feedResultsVisibility?.showFeedingSchedule,
+          showWeeklySummary: !!formData.feedResultsVisibility?.showWeeklySummary,
+          showProgressionTracker: !!formData.feedResultsVisibility?.showProgressionTracker,
+          showFCRReference: !!formData.feedResultsVisibility?.showFCRReference,
+          // Standalone flags
+          showBestPractices: !!formData.feedResultsVisibility?.showBestPractices,
+        },
+      });
+      toast.success('Settings saved successfully!');
     } catch (error) {
       toast.error('Failed to save settings');
     } finally {
@@ -329,70 +257,15 @@ export default function SettingsPage() {
     }
     toast.success('Settings reset to defaults successfully!');
   };
-  
-  // helper to refresh admin global data after mutations
-  const refreshAdminData = async () => {
-    if (!isAdmin) return;
-    try {
-      const [feedsRes, mixesRes] = await Promise.all([
-        fetch('/api/global-feeds', { cache: 'no-store' }),
-        fetch('/api/global-local-mixes', { cache: 'no-store' }),
-      ]);
-      if (feedsRes.ok) {
-        const feedsJson = await feedsRes.json();
-        setGlobalFeeds(feedsJson.categories || {});
-      }
-      if (mixesRes.ok) {
-        const mixesJson = await mixesRes.json();
-        setGlobalLocalMixes(mixesJson.mixes || []);
-      }
-    } catch (e) {
-      console.error('Failed to refresh admin global data', e);
-    }
-  };
 
-  const handleFeedSave = async (feedData) => {
+  const handleFeedSave = (feedData) => {
     try {
-      if (isAdmin) {
-        // Use admin API for global feeds
-        let token = null;
-        try {
-          if (typeof window !== 'undefined') {
-            const client = await import('../../lib/firebase');
-            const userAuth = client.auth;
-            const u = userAuth?.currentUser;
-            token = u ? await u.getIdToken(false) : null;
-          }
-        } catch {}
-        const method = editingFeed ? 'PUT' : 'POST';
-        const body = editingFeed
-          ? { categoryId: feedData.category, feedId: editingFeed.id, feed: feedData }
-          : { categoryId: feedData.category, feed: feedData };
-        const res = await fetch('/api/global-feeds', {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify(body)
-        });
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
-        if (!editingFeed) {
-          const { id } = await res.json();
-        }
-        toast.success(`Feed ${editingFeed ? 'updated' : 'added'} successfully!`);
-        await refreshAdminData();
+      if (editingFeed) {
+        updateCustomFeed(feedData.category, editingFeed.id, feedData);
+        toast.success('Feed updated successfully!');
       } else {
-        // Per-user/local behavior
-        if (editingFeed) {
-          updateCustomFeed(feedData.category, editingFeed.id, feedData);
-          toast.success('Feed updated successfully!');
-        } else {
-          addCustomFeed(feedData.category, feedData);
-          toast.success('Feed added successfully!');
-        }
+        addCustomFeed(feedData.category, feedData);
+        toast.success('Feed added successfully!');
       }
       setEditingFeed(null);
       setShowFeedForm(false);
@@ -402,52 +275,20 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLocalMixSave = async (mixData) => {
+  const handleLocalMixSave = (mixData) => {
     try {
-      if (isAdmin) {
-        let token = null;
-        try {
-          if (typeof window !== 'undefined') {
-            const client = await import('../../lib/firebase');
-            const userAuth = client.auth;
-            const u = userAuth?.currentUser;
-            token = u ? await u.getIdToken(false) : null;
-          }
-        } catch {}
-        const method = editingLocalMix ? 'PUT' : 'POST';
-        const body = editingLocalMix
-          ? { mixId: editingLocalMix.id, mix: mixData }
-          : { mix: mixData };
-        const res = await fetch('/api/global-local-mixes', {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify(body)
-        });
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
-        toast.success(`Local mix ${editingLocalMix ? 'updated' : 'added'} successfully!`);
-        await refreshAdminData();
-      } else {
-        if (editingLocalMix) {
-          updateLocalMix(editingLocalMix.category, mixData);
-          toast.success('Local mix updated successfully!');
-        } else {
-          updateLocalMix(mixData.category, mixData);
-          toast.success('Local mix saved successfully!');
-        }
+      if (editingLocalMix) {
+        updateLocalMix(editingLocalMix.category, mixData);
+        toast.success('Local mix updated successfully!');
       }
       setEditingLocalMix(null);
       setShowLocalMixForm(false);
     } catch (error) {
       toast.error('Failed to save local mix');
     }
-   };
+  };
 
-  const handleFeedDelete = async (feedId) => {
+  const handleFeedDelete = (feedId) => {
     try {
       // Find which category the feed belongs to
       let feedCategory = null;
@@ -458,37 +299,11 @@ export default function SettingsPage() {
         }
       }
       
-      if (!feedCategory) {
-        toast.error('Feed not found');
-        return;
-      }
-
-      if (isAdmin) {
-        // Call admin API
-        let token = null;
-        try {
-          if (typeof window !== 'undefined') {
-            const client = await import('../../lib/firebase');
-            const userAuth = client.auth;
-            const u = userAuth?.currentUser;
-            token = u ? await u.getIdToken(false) : null;
-          }
-        } catch {}
-        const res = await fetch('/api/global-feeds', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify({ categoryId: feedCategory, feedId })
-        });
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
-        toast.success('Feed deleted successfully!');
-      } else {
+      if (feedCategory) {
         deleteCustomFeed(feedCategory, feedId);
         toast.success('Feed deleted successfully!');
+      } else {
+        toast.error('Feed not found');
       }
     } catch (error) {
       console.error('Error deleting feed:', error);
@@ -496,22 +311,9 @@ export default function SettingsPage() {
     }
   };
 
-  const handleResetFeeds = async () => {
-    try {
-      if (isAdmin) {
-        // For admins, resetting could mean clearing custom feeds cache and refetching from global endpoints
-        // Here we simply refetch; implement UI state updates as needed
-        await Promise.all([
-          fetch('/api/global-feeds', { cache: 'no-store' }),
-          fetch('/api/global-local-mixes', { cache: 'no-store' }),
-        ]);
-      } else {
-        resetCustomFeeds();
-      }
-      toast.success('Feed data reset successfully!');
-    } catch {
-      toast.error('Failed to reset feed data');
-    }
+  const handleResetFeeds = () => {
+    resetCustomFeeds();
+    toast.success('Feed data reset to defaults successfully!');
   };
 
   const handleLogout = async () => {
@@ -524,9 +326,12 @@ export default function SettingsPage() {
   };
 
   // Firebase handles session management automatically
-  
+
   // Role guard: Only admins can access settings.
-  // Uses unified isAdmin computed at top of component (single source of truth)
+  // We allow either userProfiles flag or custom claim or email allowlist fallback
+  const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  const isEmailAdmin = user?.email ? ADMIN_EMAILS.includes(user.email.toLowerCase()) : false;
+  const isAdmin = !!(userProfile?.is_admin || userProfile?.roles?.includes?.('admin') || isEmailAdmin);
 
   // If not authenticated, show login form
   if (!isAuthenticated) {
@@ -669,21 +474,19 @@ export default function SettingsPage() {
                     {activeTab === 'feeds' && <div className="w-1.5 h-1.5 bg-primary-500 rounded-full"></div>}
                   </div>
                 </button>
-                {isAdmin && (
-                  <button
-                    onClick={() => setActiveTab('admin')}
-                    className={`flex-1 py-3 px-4 text-center font-medium text-sm transition-all duration-200 ${
-                      activeTab === 'admin'
-                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-b-2 border-primary-500'
-                        : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-700/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <span>Waitlist Admin</span>
-                      {activeTab === 'admin' && <div className="w-1.5 h-1.5 bg-primary-500 rounded-full"></div>}
-                    </div>
-                  </button>
-                )}
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className={`flex-1 py-3 px-4 text-center font-medium text-sm transition-all duration-200 ${
+                    activeTab === 'admin'
+                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-b-2 border-primary-500'
+                      : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-700/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <span>Waitlist Admin</span>
+                    {activeTab === 'admin' && <div className="w-1.5 h-1.5 bg-primary-500 rounded-full"></div>}
+                  </div>
+                </button>
               </nav>
             </div>
           </div>
@@ -705,7 +508,7 @@ export default function SettingsPage() {
                         </h3>
                         {user && (
                           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                            {user.email} {isAdmin ? '(admin)' : ''}
+                            {user.email}
                           </p>
                         )}
                       </div>
@@ -843,6 +646,137 @@ export default function SettingsPage() {
                         )}
                       </>
                     )}
+                  </div>
+                </div>
+
+                {/* Feed Results Visibility (Admin) */}
+                <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-5">
+                  <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></div>
+                    Feed Results Visibility
+                  </h2>
+
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4">
+                    Toggle which sections are visible on the Results page for all users. Local user preferences will be overridden by these global settings.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Show Feed Quantity */}
+                    <label className="flex items-center space-x-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700/30 transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!formData.feedResultsVisibility?.showFeedQuantity}
+                        onChange={(e) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            feedResultsVisibility: {
+                              ...(prev.feedResultsVisibility || {}),
+                              showFeedQuantity: e.target.checked
+                            }
+                          }))
+                        }
+                        className="w-4 h-4 text-primary-600 bg-white dark:bg-neutral-700 border-neutral-300 dark:border-neutral-600 rounded focus:ring-primary-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-neutral-800 dark:text-neutral-200">Feed Quantity</span>
+                    </label>
+
+                    {/* Show Feeding Schedule */}
+                    <label className="flex items-center space-x-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700/30 transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!formData.feedResultsVisibility?.showFeedingSchedule}
+                        onChange={(e) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            feedResultsVisibility: {
+                              ...(prev.feedResultsVisibility || {}),
+                              showFeedingSchedule: e.target.checked
+                            }
+                          }))
+                        }
+                        className="w-4 h-4 text-primary-600 bg-white dark:bg-neutral-700 border-neutral-300 dark:border-neutral-600 rounded focus:ring-primary-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-neutral-800 dark:text-neutral-200">Feeding Schedule</span>
+                    </label>
+
+                    {/* Show Weekly Summary */}
+                    <label className="flex items-center space-x-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700/30 transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!formData.feedResultsVisibility?.showWeeklySummary}
+                        onChange={(e) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            feedResultsVisibility: {
+                              ...(prev.feedResultsVisibility || {}),
+                              showWeeklySummary: e.target.checked
+                            }
+                          }))
+                        }
+                        className="w-4 h-4 text-primary-600 bg-white dark:bg-neutral-700 border-neutral-300 dark:border-neutral-600 rounded focus:ring-primary-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-neutral-800 dark:text-neutral-200">Weekly Summary</span>
+                    </label>
+
+                    {/* Show Feed Progression Tracker */}
+                    <label className="flex items-center space-x-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700/30 transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!formData.feedResultsVisibility?.showProgressionTracker}
+                        onChange={(e) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            feedResultsVisibility: {
+                              ...(prev.feedResultsVisibility || {}),
+                              showProgressionTracker: e.target.checked
+                            }
+                          }))
+                        }
+                        className="w-4 h-4 text-primary-600 bg-white dark:bg-neutral-700 border-neutral-300 dark:border-neutral-600 rounded focus:ring-primary-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-neutral-800 dark:text-neutral-200">Feed Progression Tracker</span>
+                    </label>
+
+                    {/* Show FCR Reference */}
+                    <label className="flex items-center space-x-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700/30 transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!formData.feedResultsVisibility?.showFCRReference}
+                        onChange={(e) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            feedResultsVisibility: {
+                              ...(prev.feedResultsVisibility || {}),
+                              showFCRReference: e.target.checked
+                            }
+                          }))
+                        }
+                        className="w-4 h-4 text-primary-600 bg-white dark:bg-neutral-700 border-neutral-300 dark:border-neutral-600 rounded focus:ring-primary-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-neutral-800 dark:text-neutral-200">FCR Reference</span>
+                    </label>
+
+
+                    {/* Show Best Practices for Your Birds (standalone) */}
+                    <label className="flex items-center space-x-3 p-3 rounded-lg border border-sky-200 dark:border-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!formData.feedResultsVisibility?.showBestPractices}
+                        onChange={(e) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            feedResultsVisibility: {
+                              ...(prev.feedResultsVisibility || {}),
+                              showBestPractices: e.target.checked
+                            }
+                          }))
+                        }
+                        className="w-4 h-4 text-sky-600 bg-white dark:bg-neutral-700 border-neutral-300 dark:border-neutral-600 rounded focus:ring-sky-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-neutral-800 dark:text-neutral-200">
+                        Best Practices for Your Birds
+                      </span>
+                    </label>
                   </div>
                 </div>
 

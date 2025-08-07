@@ -1,5 +1,51 @@
 # Chicken Feed Calculator
 
+## Rearing Styles
+
+Rearing styles are restricted to two options:
+- backyard
+- commercial
+
+Validation is enforced in [shared/utils/errorHandling.js](shared/utils/errorHandling.js:124). Any other value (e.g., free-range, organic) will throw a validation error.
+
+UI pickers in both web and mobile expose only these two options.
+
+## Progressive Feeding (Broilers)
+
+Progressive daily feeding is enforced for broilers across layers to align with performance and accuracy goals. Callers do not need to toggle this; it is applied by default in shared logic and explicitly enforced in mobile logic.
+- Shared logic uses progressive feeding by default within [shared/utils/feedCalculator.js](shared/utils/feedCalculator.js:523).
+- Mobile logic unconditionally applies progressive feeding for broilers in [mobile/lib/feedCalculator.js](mobile/lib/feedCalculator.js:196).
+
+## Centralized Pricing Configuration
+
+Feed pricing is centrally managed in [shared/utils/pricingConfig.js](shared/utils/pricingConfig.js:1). Use:
+- FEED_PRICES for current bag prices and sizes
+- getPricePerKg(feedType) to compute current price per kg
+- updateFeedPrice(feedType, { pricePerBag, bagSizeKg }) to adjust runtime pricing (e.g., via admin tools)
+
+Costing integrates pricingConfig in [shared/utils/feedCalculator.js](shared/utils/feedCalculator.js:939).
+
+Example:
+```js
+import { updateFeedPrice } from '../shared/utils/pricingConfig.js';
+
+updateFeedPrice('starter', { pricePerBag: 26000 });
+// Subsequent calls to calculateFeedCost reflect updated price.
+```
+
+## Testing
+
+Jest is configured at the repo root with Babel transform for ESM syntax in source.
+- Config: [jest.config.js](jest.config.js:1)
+- Scripts: see [package.json](package.json:10) ("test", "test:watch")
+- Tests located under ./tests
+
+Run:
+```bash
+npm install
+npm test
+```
+
 🐔 **Smart poultry feed management system for African farmers**
 
 A comprehensive cross-platform application designed to help poultry farmers optimize their feed management, reduce costs, and improve bird health through intelligent calculations and expert guidance.

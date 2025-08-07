@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useUnifiedStore } from '../lib/unifiedStore';
 import { getLocalFeedMix, calculateLocalFeedCost } from '../../shared/data/feedBrands.js';
-import { calculateFeedCost } from '../../shared/utils/feedCalculator.js';
+import { calculateFeedCost, getFeedType } from '../../shared/utils/feedCalculator.js';
 import { BookOpen, Package, MapPin, DollarSign, Info, Star, Filter, Search } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useToast } from './Toast';
@@ -26,25 +26,9 @@ export default function RecommendedFeeds() {
     try {
       setError(null);
 
-      const state = getState();
-      const feedingSystem = state.feedingSystem || '2-phase';
-
-      // Determine feed stage based on bird type, age and feeding system
-      let feedStage;
-      if (birdType === 'layer') {
-        feedStage = ageInDays < 126 ? (ageInDays <= 28 ? 'starter' : 'grower') : 'layer';
-      } else {
-        // Broilers: synchronize with getFeedType mapping (Nigeria 2-phase vs International 3-phase)
-        // 2-phase: starter ≤35d, finisher >35d
-        // 3-phase: starter ≤28d, grower 29–42d, finisher >42d
-        if (feedingSystem === '2-phase') {
-          feedStage = ageInDays <= 35 ? 'starter' : 'finisher';
-        } else {
-          if (ageInDays <= 28) feedStage = 'starter';
-          else if (ageInDays <= 42) feedStage = 'grower';
-          else feedStage = 'finisher';
-        }
-      }
+      let feedStage = getFeedType(birdType, ageInDays);
+      // Alias: treat 'pre-starter' as 'starter' for recommendations
+      if (feedStage === 'pre-starter') feedStage = 'starter';
 
       // Get feeds from the unified store for the appropriate stage
       return customFeeds[feedStage] || [];
@@ -61,22 +45,9 @@ export default function RecommendedFeeds() {
 
   const localFeedMix = useMemo(() => {
     try {
-      const state = getState();
-      const feedingSystem = state.feedingSystem || '2-phase';
-
-      // Determine feed stage based on bird type, age and feeding system
-      let feedStage;
-      if (birdType === 'layer') {
-        feedStage = ageInDays < 126 ? (ageInDays <= 28 ? 'starter' : 'grower') : 'layer';
-      } else {
-        if (feedingSystem === '2-phase') {
-          feedStage = ageInDays <= 35 ? 'starter' : 'finisher';
-        } else {
-          if (ageInDays <= 28) feedStage = 'starter';
-          else if (ageInDays <= 42) feedStage = 'grower';
-          else feedStage = 'finisher';
-        }
-      }
+      let feedStage = getFeedType(birdType, ageInDays);
+      // Alias: treat 'pre-starter' as 'starter' for local mix availability
+      if (feedStage === 'pre-starter') feedStage = 'starter';
       
       // Get local mix from the management store for the appropriate stage
       return localMixes[feedStage] || null;
@@ -137,17 +108,7 @@ export default function RecommendedFeeds() {
   }, [recommendedFeeds, searchTerm, sortBy]);
 
   const getFeedStage = () => {
-    if (birdType === 'layer') {
-      return ageInDays < 126 ? (ageInDays <= 28 ? 'starter' : 'grower') : 'layer';
-    } else {
-      const feedingSystem = useUnifiedStore.getState().feedingSystem || '2-phase';
-      if (feedingSystem === '2-phase') {
-        return ageInDays <= 35 ? 'starter' : 'finisher';
-      }
-      if (ageInDays <= 28) return 'starter';
-      if (ageInDays <= 42) return 'grower';
-      return 'finisher';
-    }
+    return getFeedType(birdType, ageInDays);
   };
 
   const tabs = [
@@ -356,153 +317,183 @@ export default function RecommendedFeeds() {
       {/* Local Mix Tab */}
       {activeTab === 'local' && (
         <div className="space-y-6">
-          {/* Local Mix Overview */}
-          <div className="card p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-                  {localFeedMix.name}
-                </h3>
-                <p className="text-neutral-600 dark:text-neutral-300">
-                  {localFeedMix.protein}% protein • Cost-effective alternative
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-secondary-600">
-                  ₦{Math.round(localFeedCost)}
-                </div>
-                <div className="text-sm text-neutral-500 dark:text-neutral-400">per kg</div>
-              </div>
-            </div>
-
-            <div className="bg-secondary-50 dark:bg-secondary-900/20 rounded-xl p-4">
-              <h4 className="font-medium text-secondary-900 dark:text-secondary-100 mb-2">💰 Cost Comparison</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-secondary-700 dark:text-secondary-300">Local Mix:</span>
-                  <span className="font-semibold text-secondary-900 dark:text-secondary-100 ml-2">
-                    ₦{Math.round(localFeedCost)}/kg
-                  </span>
-                </div>
-                <div>
-                  <span className="text-secondary-700 dark:text-secondary-300">Commercial Average:</span>
-                  <span className="font-semibold text-secondary-900 dark:text-secondary-100 ml-2">
-                    ₦{commercialFeedPrice}/kg
-                  </span>
-                </div>
-              </div>
-              <div className="mt-2 text-xs text-secondary-600 dark:text-secondary-400">
-                Potential savings: ₦{Math.round(commercialFeedPrice - localFeedCost)}/kg
-              </div>
-            </div>
-          </div>
-
-          {/* Ingredients List */}
-          <div className="card p-6">
-            <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
-              📋 Ingredients & Proportions
-            </h3>
-            
-            <div className="space-y-3">
-              {localFeedMix.ingredients.map((ingredient, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                  <div className="flex-1">
-                    <div className="font-medium text-neutral-900 dark:text-neutral-100">
-                      {ingredient.name}
-                    </div>
-                    <div className="text-sm text-neutral-600 dark:text-neutral-400">
-                      {ingredient.percentage}% of total mix
-                    </div>
+          {localFeedMix ? (
+            <>
+              {/* Local Mix Overview */}
+              <div className="card p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-xl font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+                      {localFeedMix.name}
+                    </h3>
+                    <p className="text-neutral-600 dark:text-neutral-300">
+                      {localFeedMix.protein}% protein • Cost-effective alternative
+                    </p>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-neutral-900 dark:text-neutral-100">
-                      ₦{ingredient.pricePerKg}/kg
+                    <div className="text-2xl font-bold text-secondary-600">
+                      ₦{localFeedCost ? Math.round(localFeedCost) : 'N/A'}
                     </div>
-                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                      ₦{Math.round(ingredient.percentage * ingredient.pricePerKg / 100)}/kg mix
+                    <div className="text-sm text-neutral-500 dark:text-neutral-400">per kg</div>
+                  </div>
+                </div>
+
+                {localFeedCost && (
+                  <div className="bg-secondary-50 dark:bg-secondary-900/20 rounded-xl p-4">
+                    <h4 className="font-medium text-secondary-900 dark:text-secondary-100 mb-2">💰 Cost Comparison</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-secondary-700 dark:text-secondary-300">Local Mix:</span>
+                        <span className="font-semibold text-secondary-900 dark:text-secondary-100 ml-2">
+                          ₦{Math.round(localFeedCost)}/kg
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-secondary-700 dark:text-secondary-300">Commercial Average:</span>
+                        <span className="font-semibold text-secondary-900 dark:text-secondary-100 ml-2">
+                          ₦{commercialFeedPrice}/kg
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-secondary-600 dark:text-secondary-400">
+                      Potential savings: ₦{Math.round(commercialFeedPrice - localFeedCost)}/kg
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Ingredients List */}
+              {localFeedMix.ingredients && localFeedMix.ingredients.length > 0 && (
+                <div className="card p-6">
+                  <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+                    📋 Ingredients & Proportions
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {localFeedMix.ingredients.map((ingredient, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                        <div className="flex-1">
+                          <div className="font-medium text-neutral-900 dark:text-neutral-100">
+                            {ingredient.name}
+                          </div>
+                          <div className="text-sm text-neutral-600 dark:text-neutral-400">
+                            {ingredient.percentage}% of total mix
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-neutral-900 dark:text-neutral-100">
+                            ₦{ingredient.pricePerKg}/kg
+                          </div>
+                          <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                            ₦{Math.round(ingredient.percentage * ingredient.pricePerKg / 100)}/kg mix
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Total Cost Breakdown */}
+                  {localFeedCost && (
+                    <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-neutral-900 dark:text-neutral-100">Total Cost per kg:</span>
+                        <span className="text-xl font-bold text-secondary-600">
+                          ₦{Math.round(localFeedCost)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mixing Instructions */}
+              {localFeedMix.instructions && localFeedMix.instructions.length > 0 && (
+                <div className="card p-6">
+                  <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+                    🔧 Mixing Instructions
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {localFeedMix.instructions.map((instruction, index) => (
+                      <div key={index} className="flex items-start space-x-3">
+                        <div className="flex-shrink-0 w-6 h-6 bg-accent-200 dark:bg-accent-800 rounded-full flex items-center justify-center mt-0.5">
+                          <span className="text-xs font-medium text-accent-800 dark:text-accent-200">
+                            {index + 1}
+                          </span>
+                        </div>
+                        <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                          {instruction}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Important Notes */}
+              <div className="alert-warning">
+                <div className="flex items-start space-x-3">
+                  <Info className="w-5 h-5 text-accent-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-accent-900 dark:text-accent-100 mb-2">Important Notes</h4>
+                    <ul className="text-sm text-accent-800 dark:text-accent-200 space-y-1 list-disc list-inside">
+                      <li>Ensure all ingredients are fresh and of good quality</li>
+                      <li>Mix thoroughly to ensure uniform distribution</li>
+                      <li>Store in dry, rodent-proof containers</li>
+                      <li>Use within 4 weeks of mixing for best results</li>
+                      <li>Adjust proportions based on local ingredient availability</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Calculation Helper */}
+              {localFeedCost && (
+                <div className="card p-6 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20">
+                  <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+                    🧮 Batch Calculator
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="label dark:text-neutral-300">Batch Size (kg)</label>
+                      <select className="select">
+                        <option value="25">25 kg batch</option>
+                        <option value="50">50 kg batch</option>
+                        <option value="100">100 kg batch</option>
+                      </select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="text-sm text-neutral-600 dark:text-neutral-400">For 25kg batch:</div>
+                      <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                        Total Cost: ₦{Math.round(localFeedCost * 25).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                        Savings vs Commercial: ₦{Math.round((commercialFeedPrice - localFeedCost) * 25).toLocaleString()}
+                      </div>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Total Cost Breakdown */}
-            <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-neutral-900 dark:text-neutral-100">Total Cost per kg:</span>
-                <span className="text-xl font-bold text-secondary-600">
-                  ₦{Math.round(localFeedCost)}
-                </span>
+              )}
+            </>
+          ) : (
+            /* Fallback UI when local mix data is unavailable */
+            <div className="text-center py-12">
+              <Star className="mx-auto h-16 w-16 text-neutral-400 mb-4" />
+              <h3 className="text-lg font-medium text-neutral-600 dark:text-neutral-400 mb-2">
+                Local Mix Recipe Not Available
+              </h3>
+              <p className="text-neutral-500 dark:text-neutral-400 mb-4">
+                No local feed mix recipe is available for {birdType} at {ageInDays} days old ({getFeedStage()} stage).
+              </p>
+              <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                  Local mix recipes are available for standard feed stages. Please check your bird age or contact support for custom recipes.
+                </p>
               </div>
             </div>
-          </div>
-
-          {/* Mixing Instructions */}
-          <div className="card p-6">
-            <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
-              🔧 Mixing Instructions
-            </h3>
-            
-            <div className="space-y-3">
-              {localFeedMix.instructions.map((instruction, index) => (
-                <div key={index} className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-accent-200 dark:bg-accent-800 rounded-full flex items-center justify-center mt-0.5">
-                    <span className="text-xs font-medium text-accent-800 dark:text-accent-200">
-                      {index + 1}
-                    </span>
-                  </div>
-                  <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed">
-                    {instruction}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Important Notes */}
-          <div className="alert-warning">
-            <div className="flex items-start space-x-3">
-              <Info className="w-5 h-5 text-accent-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-accent-900 dark:text-accent-100 mb-2">Important Notes</h4>
-                <ul className="text-sm text-accent-800 dark:text-accent-200 space-y-1 list-disc list-inside">
-                  <li>Ensure all ingredients are fresh and of good quality</li>
-                  <li>Mix thoroughly to ensure uniform distribution</li>
-                  <li>Store in dry, rodent-proof containers</li>
-                  <li>Use within 4 weeks of mixing for best results</li>
-                  <li>Adjust proportions based on local ingredient availability</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* Calculation Helper */}
-          <div className="card p-6 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20">
-            <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
-              🧮 Batch Calculator
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="label dark:text-neutral-300">Batch Size (kg)</label>
-                <select className="select">
-                  <option value="25">25 kg batch</option>
-                  <option value="50">50 kg batch</option>
-                  <option value="100">100 kg batch</option>
-                </select>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="text-sm text-neutral-600 dark:text-neutral-400">For 25kg batch:</div>
-                <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                  Total Cost: ₦{Math.round(localFeedCost * 25).toLocaleString()}
-                </div>
-                <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Savings vs Commercial: ₦{Math.round((commercialFeedPrice - localFeedCost) * 25).toLocaleString()}
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>

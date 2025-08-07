@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Network from 'expo-network';
 
 // Import local utilities
-import { calculateFeed, generateFeedingSchedule, generateBestPractices, convertAge, BIRD_BREEDS } from './feedCalculator.js';
+import { calculateFeed, generateFeedingSchedule, generateBestPractices, convertAge, BIRD_BREEDS } from '../../shared/utils/feedCalculator.js';
 import { getRecommendedFeeds, getLocalFeedMix, calculateLocalFeedCost } from './feedBrands.js';
 import { getWeeklyKnowledge, getSeasonalTips, getEmergencyAdvice } from './knowledgeSnippets.js';
 import { logError, retryWithBackoff, safeAsync } from '../../shared/utils/errorHandling';
@@ -15,7 +15,7 @@ export const useFeedStore = create(
     (set, get) => ({
       // Form inputs
       birdType: 'broiler',
-      breed: 'arbor_acres',
+      breed: 'Arbor Acres',
       ageInDays: 28,
       ageUnit: 'days',
       quantity: 50,
@@ -67,26 +67,29 @@ export const useFeedStore = create(
           // Simulate brief loading for better UX
           await new Promise(resolve => setTimeout(resolve, 500));
           
-          const results = calculateFeed(
-            state.birdType,
-            state.breed,
-            state.ageInDays,
-            state.quantity,
-            state.rearingStyle,
-            state.targetWeight
-          );
+          const results = calculateFeed({
+            birdType: state.birdType,
+            breed: state.breed,
+            ageInDays: state.ageInDays,
+            quantity: state.quantity,
+            rearingStyle: state.rearingStyle,
+            targetWeight: state.targetWeight,
+            useProgressiveFeeding: true // Enable progressive feeding by default
+          });
           
           const feedingSchedule = generateFeedingSchedule(
             state.ageInDays,
-            results.totalDailyFeed
+            state.birdType,
+            results.total.cups
           );
           
-          const bestPractices = generateBestPractices(
-            state.birdType,
-            state.breed,
-            state.ageInDays,
-            state.rearingStyle
-          );
+          const bestPractices = generateBestPractices({
+            birdType: state.birdType,
+            breed: state.breed,
+            ageInDays: state.ageInDays,
+            rearingStyle: state.rearingStyle,
+            quantity: state.quantity
+          });
           
           const recommendedFeeds = getRecommendedFeeds(
             state.birdType,
@@ -293,9 +296,14 @@ export const useOfflineStore = create((set, get) => ({
 
 // Utility functions
 export const getAvailableBreeds = (birdType) => {
-  return Object.entries(BIRD_BREEDS)
-    .filter(([_, breed]) => breed.type === birdType)
-    .map(([id, breed]) => ({ id, ...breed }));
+  const birdTypeData = BIRD_BREEDS[birdType];
+  if (!birdTypeData) return [];
+  
+  return Object.entries(birdTypeData).map(([breedName, breedData]) => ({
+    id: breedName,
+    name: breedName,
+    ...breedData
+  }));
 };
 
 export const getTargetWeightOptions = (breed) => {

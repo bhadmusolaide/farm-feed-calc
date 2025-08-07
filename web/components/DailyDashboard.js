@@ -137,17 +137,14 @@ const DailyDashboard = () => {
                           <span className="text-neutral-600 dark:text-neutral-400">Phase:</span>
                           <span className="font-medium text-neutral-900 dark:text-white">
                             {(() => {
-                              // Mirror getFeedType thresholds for clarity; nextDay.feedType already reflects this.
-                              const feedingSystem = (calc.feedingSystem || '2-phase');
+                              // Use unified feed type system
                               const age = currentAge;
                               if (calc.birdType === 'layer') {
                                 return age <= 28 ? 'Starter' : age < 126 ? 'Grower' : 'Layer';
                               }
-                              if (feedingSystem === '2-phase') {
-                                return age <= 35 ? 'Starter' : 'Finisher';
-                              }
+                              // Broilers - unified system: Pre-starter ≤14d, Starter 15-28d, Finisher >28d
+                              if (age <= 14) return 'Pre-starter';
                               if (age <= 28) return 'Starter';
-                              if (age <= 42) return 'Grower';
                               return 'Finisher';
                             })()}
                           </span>

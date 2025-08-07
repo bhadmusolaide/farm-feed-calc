@@ -1,6 +1,40 @@
 // Feed progression calculation utility
 import { calculateFeed, calculateFeedCost, BIRD_BREEDS } from './feedCalculator.js';
 
+// Simple in-memory memoization for per-day total feed (kg) computations.
+// Cache key is built from parameters that affect calculateFeed output for a given day.
+const dayFeedCache = new Map();
+const cacheKey = (p, day) => {
+  // Only include parameters that change feed outcome
+  const {
+    birdType, breed, rearingStyle, targetWeight = 'medium',
+    quantity, environmental = {}
+  } = p;
+  // Environmental can be object; normalize keys to stable string
+  const env = {
+    temperature: environmental.temperature ?? null,
+    humidity: environmental.humidity ?? null,
+    season: environmental.season ?? null
+  };
+  return JSON.stringify({ birdType, breed, rearingStyle, targetWeight, quantity, env, day });
+};
+
+const getTotalKgForDay = (baseParams, day) => {
+  const key = cacheKey(baseParams, day);
+  const hit = dayFeedCache.get(key);
+  if (hit !== undefined) return hit;
+
+  const dayFeed = calculateFeed({
+    ...baseParams,
+    ageInDays: day,
+    // Progressive feeding enforced by callers and default, keep explicit for clarity
+    useProgressiveFeeding: baseParams.birdType === 'broiler' ? true : undefined
+  });
+  const totalKg = dayFeed.total.grams / 1000;
+  dayFeedCache.set(key, totalKg);
+  return totalKg;
+};
+
 /**
  * Calculate feed progression to target weeks (6, 7, 8 weeks)
  * @param {Object} params - Calculation parameters
@@ -29,6 +63,10 @@ export function calculateFeedProgression(params) {
     return null;
   }
 
+  const baseParams = {
+    birdType, breed, quantity, rearingStyle, targetWeight, environmental
+  };
+
   const targetWeeks = [6, 7, 8]; // Target weeks to show progression for
   const progressions = [];
 
@@ -43,32 +81,18 @@ export function calculateFeedProgression(params) {
     // Calculate total feed consumed from day 1 to current age
     let totalConsumedKg = 0;
     for (let day = 1; day <= ageInDays; day++) {
-      const dayFeed = calculateFeed({
-        ...params,
-        ageInDays: day
-      });
-      totalConsumedKg += dayFeed.total.grams / 1000; // total.grams already includes quantity
+      totalConsumedKg += getTotalKgForDay(baseParams, day);
     }
 
     // Calculate total feed needed from current age to target week
     let remainingFeedKg = 0;
     for (let day = ageInDays + 1; day <= targetDays; day++) {
-      const dayFeed = calculateFeed({
-        ...params,
-        ageInDays: day
-      });
-      remainingFeedKg += dayFeed.total.grams / 1000; // total.grams already includes quantity
+      remainingFeedKg += getTotalKgForDay(baseParams, day);
     }
 
     // Calculate total feed needed from day 1 to target week
-    let totalRequiredKg = 0;
-    for (let day = 1; day <= targetDays; day++) {
-      const dayFeed = calculateFeed({
-        ...params,
-        ageInDays: day
-      });
-      totalRequiredKg += dayFeed.total.grams / 1000; // total.grams already includes quantity
-    }
+    // We can derive this as totalConsumedKg + remainingFeedKg, avoiding extra loop
+    const totalRequiredKg = totalConsumedKg + remainingFeedKg;
 
     // Calculate progress percentage
     const progressPercentage = (totalConsumedKg / totalRequiredKg) * 100;
@@ -114,11 +138,7 @@ export function calculateFeedProgression(params) {
     let totalConsumedKg = 0;
     
     for (let day = 1; day <= weekDays; day++) {
-      const dayFeed = calculateFeed({
-        ...params,
-        ageInDays: day
-      });
-      totalConsumedKg += dayFeed.total.grams / 1000; // total.grams already includes quantity
+      totalConsumedKg += getTotalKgForDay(baseParams, day);
     }
 
     const totalConsumedBags = totalConsumedKg / 25;

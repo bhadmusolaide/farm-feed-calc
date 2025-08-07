@@ -2,62 +2,56 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
+    // Helper: Email allowlist (optional). If you use NEXT_PUBLIC_ADMIN_EMAILS on web,
+    // also configure custom claims in backend for production security.
+    function isAllowlistedEmail() {
+      return request.auth.token.email_verified == true
+        && (
+          // Example hardcoded allowlist. Replace with your org emails if desired.
+          request.auth.token.email in [
+            'admin@example.com'
+          ]
+        );
+    }
+
+    // Helper: Check if user is admin via custom claim or allowlist fallback
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.admin == true ||
+        isAllowlistedEmail()
+      );
+    }
+
     // Feed calculations - users can only access their own data
     match /feed_calculations/{calculationId} {
       allow read, write, delete: if request.auth != null &&
         (resource == null || resource.data.user_id == request.auth.uid);
     }
-    
+
     // Custom feeds - users can only access their own data
     match /custom_feeds/{feedId} {
       allow read, write, delete: if request.auth != null &&
         (resource == null || resource.data.user_id == request.auth.uid);
     }
-    
+
     // Custom local mixes - users can only access their own data
     match /custom_local_mixes/{mixId} {
       allow read, write, delete: if request.auth != null &&
         (resource == null || resource.data.user_id == request.auth.uid);
     }
-    
+
     // User profiles - users can only access their own profile
     match /user_profiles/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-    
-    // Global settings - PUBLIC read, admin-only write
+
+    // Global settings
+    // - Read: allow all authenticated users to read global settings
+    // - Write: restrict to admins only (custom claim or allowlisted email)
     match /global_settings/{document} {
-      allow read: if true; // public read for best UX
-      allow write: if request.auth != null && request.auth.token.admin == true; // Only admin users can write
-    }
-
-    // Global feeds - PUBLIC read, admin-only write
-    match /global_feeds/{doc=**} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
-    }
-
-    // Global local mixes - PUBLIC read, admin-only write
-    match /global_local_mixes/{doc=**} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
-    }
-
-    // Waitlist - admins only (read and delete), public create
-    match /waitlist/{docId} {
-      allow read: if request.auth != null && (
-        request.auth.token.admin == true ||    // custom claim
-        request.auth.token.email in get(/databases/$(database)/documents/__env/admins).data.allow // optional allowlist doc
-      );
-
-      allow delete: if request.auth != null && (
-        request.auth.token.admin == true ||
-        request.auth.token.email in get(/databases/$(database)/documents/__env/admins).data.allow
-      );
-
-      // Allow creation from unauthenticated users via API if needed:
-      allow create: if true;
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }

@@ -32,11 +32,6 @@ export default function FeedProgressionCard({
 
   return (
     <div className="card p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
-      <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
-        <TrendingUp className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
-        Feed Progression Tracker
-      </h3>
-      
       <div className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
         Track your feed consumption and plan ahead for key growth milestones
       </div>
