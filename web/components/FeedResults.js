@@ -482,7 +482,7 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
       )}
 
       {/* Best Practices */}
-      {visibility.showWeeklySummary && (
+      {visibility.showBestPractices && (
         <div className="card p-6">
           <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
             <Lightbulb className="w-5 h-5 mr-2 text-accent-600" />
