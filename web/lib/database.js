@@ -241,10 +241,10 @@ export class DatabaseService {
       const { user } = useFirebaseAuthStore.getState();
       if (!user) return null;
       const profile = await userProfilesDB.get(user.id);
-      return profile?.data?.preferences || null;
+      return profile?.data?.preferences || {};
     } catch (error) {
       console.error('Error getting user preferences:', error);
-      return null;
+      return {};
     }
   }
 

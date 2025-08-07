@@ -363,22 +363,24 @@ export default function LandingPage() {
         <div className="container-app py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <div className="flex items-center space-x-4 mb-4">
-                <img 
-                  src="/omzo_farmz_logo.png" 
-                  alt="Omzo Farmz Logo" 
+              <div className="flex items-center space-x-4 mb-2">
+                <img
+                  src="/omzo_farmz_logo.png"
+                  alt="Omzo Farmz Logo"
                   className="w-16 h-16 object-contain rounded-lg"
                   onError={(e) => {
                     e.target.style.display = 'none';
                   }}
                 />
-                <h3 className="font-display font-semibold text-neutral-900 dark:text-neutral-100">
-                  {getSiteTitle()}
-                </h3>
+                <div>
+                  <h3 className="font-display font-semibold text-neutral-900 dark:text-neutral-100">
+                    {getSiteTitle()}
+                  </h3>
+                  <p className="text-neutral-600 dark:text-neutral-300 text-sm leading-relaxed mt-1">
+                    {getFooterDescription()}
+                  </p>
+                </div>
               </div>
-              <p className="text-neutral-600 dark:text-neutral-300 text-sm leading-relaxed">
-                {getFooterDescription()}
-              </p>
             </div>
             
             <div>

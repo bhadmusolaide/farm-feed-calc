@@ -195,6 +195,9 @@ export class DatabaseStrategy extends PersistenceStrategy {
           return await this.db.addLocalMix(data);
         case 'settings':
           return await this.db.saveUserPreferences(data);
+        case 'meta':
+          // Store metadata in user preferences with a special prefix
+          return await this.db.saveUserPreferences({ [`meta_${data.id}`]: data.value });
         default:
           throw new Error(`Unsupported key: ${key}`);
       }
@@ -227,6 +230,11 @@ export class DatabaseStrategy extends PersistenceStrategy {
           return await this.db.deleteCustomFeed(id);
         case 'localMixes':
           return await this.db.deleteLocalMix(id);
+        case 'meta':
+          // Delete metadata from user preferences
+          const currentPrefs = await this.db.getUserPreferences() || {};
+          delete currentPrefs[`meta_${id}`];
+          return await this.db.saveUserPreferences(currentPrefs);
         default:
           throw new Error(`Unsupported key: ${key}`);
       }
@@ -251,6 +259,22 @@ export class DatabaseStrategy extends PersistenceStrategy {
           const user = this._requireAuth();
           const profile = await this.db.getUserProfile(user.id);
           return profile ? [profile] : [];
+        case 'meta':
+          // Retrieve metadata from user preferences
+          const userForMeta = this._requireAuth();
+          const profileForMeta = await this.db.getUserProfile(userForMeta.id);
+          if (!profileForMeta) return [];
+          
+          // Extract meta entries from preferences
+          const metaEntries = [];
+          const preferences = profileForMeta.preferences || {};
+          for (const [key, value] of Object.entries(preferences)) {
+            if (key.startsWith('meta_')) {
+              const id = key.substring(5); // Remove 'meta_' prefix
+              metaEntries.push({ id, value });
+            }
+          }
+          return metaEntries;
         default:
           return [];
       }
@@ -271,6 +295,9 @@ export class DatabaseStrategy extends PersistenceStrategy {
           return await this.db.updateCustomFeed(id, updates);
         case 'localMixes':
           return await this.db.updateLocalMix(id, updates);
+        case 'meta':
+          // Update metadata in user preferences
+          return await this.db.saveUserPreferences({ [`meta_${id}`]: updates });
         default:
           throw new Error(`Unsupported key: ${key}`);
       }

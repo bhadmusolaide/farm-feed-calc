@@ -97,6 +97,16 @@ export default function SettingsPage() {
     };
   }, [initialize, isAuthenticated]);
 
+  // Refresh feed data when switching to feeds tab
+  useEffect(() => {
+    if (activeTab === 'feeds') {
+      // Force refresh of custom feeds data
+      useUnifiedStore.getState().loadCustomFeeds().catch(err => {
+        console.error('Error refreshing custom feeds:', err);
+      });
+    }
+  }, [activeTab]);
+
   // When globalSettings changes, normalize shape and stop loading
   useEffect(() => {
     // Build safe defaults
@@ -258,13 +268,13 @@ export default function SettingsPage() {
     toast.success('Settings reset to defaults successfully!');
   };
 
-  const handleFeedSave = (feedData) => {
+  const handleFeedSave = async (feedData) => {
     try {
       if (editingFeed) {
-        updateCustomFeed(feedData.category, editingFeed.id, feedData);
+        await updateCustomFeed(feedData.category, editingFeed.id, feedData);
         toast.success('Feed updated successfully!');
       } else {
-        addCustomFeed(feedData.category, feedData);
+        await addCustomFeed(feedData.category, feedData);
         toast.success('Feed added successfully!');
       }
       setEditingFeed(null);
@@ -275,10 +285,10 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLocalMixSave = (mixData) => {
+  const handleLocalMixSave = async (mixData) => {
     try {
       if (editingLocalMix) {
-        updateLocalMix(editingLocalMix.category, mixData);
+        await updateLocalMix(editingLocalMix.category, mixData);
         toast.success('Local mix updated successfully!');
       }
       setEditingLocalMix(null);
@@ -288,7 +298,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleFeedDelete = (feedId) => {
+  const handleFeedDelete = async (feedId) => {
     try {
       // Find which category the feed belongs to
       let feedCategory = null;
@@ -300,7 +310,7 @@ export default function SettingsPage() {
       }
       
       if (feedCategory) {
-        deleteCustomFeed(feedCategory, feedId);
+        await deleteCustomFeed(feedCategory, feedId);
         toast.success('Feed deleted successfully!');
       } else {
         toast.error('Feed not found');

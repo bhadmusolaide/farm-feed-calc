@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUnifiedStore } from '../lib/unifiedStore';
 import { getLocalFeedMix, calculateLocalFeedCost } from '../../shared/data/feedBrands.js';
 import { calculateFeedCost, getFeedType } from '../../shared/utils/feedCalculator.js';
@@ -11,7 +11,7 @@ import { LoadingWrapper } from './LoadingState';
 import { formatErrorForUser, logError } from '../../shared/utils/errorHandling';
 
 export default function RecommendedFeeds() {
-  const { birdType, ageInDays, getCurrency, getRecommendedFeedsTitle, getRecommendedFeedsDescription, customFeeds, localMixes } = useUnifiedStore();
+  const { birdType, ageInDays, getCurrency, getRecommendedFeedsTitle, getRecommendedFeedsDescription, customFeeds, localMixes, hasUserCustoms, _updateTrigger } = useUnifiedStore();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState('commercial');
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,6 +22,13 @@ export default function RecommendedFeeds() {
 
   // Determine feed stage using shared logic that honors feeding system
   const { getState } = useUnifiedStore;
+
+  // Refresh feed data when component mounts
+  useEffect(() => {
+    useUnifiedStore.getState().loadCustomFeeds().catch(err => {
+      console.error('Error refreshing custom feeds in RecommendedFeeds:', err);
+    });
+  }, []);
   const recommendedFeeds = useMemo(() => {
     try {
       setError(null);
@@ -30,8 +37,19 @@ export default function RecommendedFeeds() {
       // Alias: treat 'pre-starter' as 'starter' for recommendations
       if (feedStage === 'pre-starter') feedStage = 'starter';
 
-      // Get feeds from the unified store for the appropriate stage
-      return customFeeds[feedStage] || [];
+      // Rendering rule:
+      // - If user has ever created customs for this category (hasUserCustoms[stage] === true),
+      //   render strictly from customFeeds[stage] (which may be an empty array after deletions).
+      // - Otherwise, fall back to bundled FEED_BRANDS via initial store state already present in customFeeds.
+      const hasCustom = (hasUserCustoms && hasUserCustoms[feedStage]) === true;
+
+      const list = customFeeds[feedStage];
+      if (hasCustom) {
+        return Array.isArray(list) ? list : [];
+      }
+      // When user has not created customs yet for this stage, whatever is in customFeeds
+      // represents the baseline defaults seeded from FEED_BRANDS.
+      return Array.isArray(list) ? list : [];
     } catch (err) {
       logError(err, 'Failed to get recommended feeds', { birdType, ageInDays });
       setError(err);
@@ -41,7 +59,7 @@ export default function RecommendedFeeds() {
       });
       return [];
     }
-  }, [birdType, ageInDays, customFeeds, addToast]);
+  }, [birdType, ageInDays, customFeeds, hasUserCustoms, _updateTrigger, addToast]);
 
   const localFeedMix = useMemo(() => {
     try {
@@ -55,7 +73,7 @@ export default function RecommendedFeeds() {
       logError(err, 'Failed to get local feed mix', { birdType, ageInDays });
       return null;
     }
-  }, [birdType, ageInDays, localMixes]);
+  }, [birdType, ageInDays, localMixes, _updateTrigger]);
 
   const localFeedCost = useMemo(() => {
     try {
