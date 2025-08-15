@@ -1,0 +1,68 @@
+{
+  "name": "chicken-feed-calculator",
+  "version": "1.0.0",
+  "description": "Smart poultry feed management system for African farmers",
+  "private": true,
+  "workspaces": [
+    "web",
+    "mobile"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=web",
+    "build": "npm run build --workspace=web",
+    "start": "npm run start --workspace=web",
+    "mobile:start": "npm run start --workspace=mobile",
+    "mobile:android": "npm run android --workspace=mobile",
+    "mobile:ios": "npm run ios --workspace=mobile",
+    "mobile:web": "npm run web --workspace=mobile",
+    "lint": "npm run lint --workspace=web && npm run lint --workspace=mobile",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
+    "install:all": "npm install && npm install --workspace=web && npm install --workspace=mobile",
+    "clean": "rm -rf node_modules web/node_modules mobile/node_modules web/.next mobile/.expo"
+  },
+  "keywords": [
+    "poultry",
+    "feed",
+    "calculator",
+    "agriculture",
+    "farming",
+    "africa",
+    "nigeria",
+    "chicken",
+    "broiler",
+    "layer"
+  ],
+  "author": "Chicken Feed Calculator Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chickenfeedcalc/app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chickenfeedcalc/app/issues"
+  },
+  "homepage": "https://www.chickenfeedcalc.com",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "jest": "^29.7.0",
+    "babel-jest": "^29.7.0",
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.2"
+  },
+  "babel": {
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "targets": { "node": "current" }
+        }
+      ]
+    ]
+  }
+}
