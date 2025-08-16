@@ -595,20 +595,23 @@ export const LOCAL_FEED_MIXES = {
  * @param {number} ageInDays - Age of birds in days
  * @returns {Array} Array of recommended feeds
  */
-export function getRecommendedFeeds(birdType, ageInDays) {
+export function getRecommendedFeeds(birdType, ageInDays, customFeeds = null) {
+  // Use customFeeds if provided, otherwise fall back to static FEED_BRANDS
+  const feedData = customFeeds || FEED_BRANDS;
+  
   if (birdType === 'layer') {
     if (ageInDays < 126) { // Before 18 weeks
-      return FEED_BRANDS.starter.concat(FEED_BRANDS.grower);
+      return (feedData.starter || []).concat(feedData.grower || []);
     } else {
-      return FEED_BRANDS.layer;
+      return feedData.layer || [];
     }
   } else { // broiler
     if (ageInDays <= 28) { // 0-4 weeks
-      return FEED_BRANDS.starter;
+      return feedData.starter || [];
     } else if (ageInDays <= 42) { // 4-6 weeks
-      return FEED_BRANDS.grower;
+      return feedData.grower || [];
     } else { // 6+ weeks
-      return FEED_BRANDS.finisher;
+      return feedData.finisher || [];
     }
   }
 }

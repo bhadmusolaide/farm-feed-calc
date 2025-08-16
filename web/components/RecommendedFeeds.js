@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUnifiedStore } from '../lib/unifiedStore';
-import { getLocalFeedMix, calculateLocalFeedCost } from '../../shared/data/feedBrands.js';
+import { getRecommendedFeeds, getLocalFeedMix, calculateLocalFeedCost } from '../../shared/data/feedBrands.js';
 import { calculateFeedCost, getFeedType } from '../../shared/utils/feedCalculator.js';
 import { BookOpen, Package, MapPin, DollarSign, Info, Star, Filter, Search } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -11,7 +11,7 @@ import { LoadingWrapper } from './LoadingState';
 import { formatErrorForUser, logError } from '../../shared/utils/errorHandling';
 
 export default function RecommendedFeeds() {
-  const { birdType, ageInDays, getCurrency, getRecommendedFeedsTitle, getRecommendedFeedsDescription, customFeeds, localMixes, hasUserCustoms, _updateTrigger } = useUnifiedStore();
+  const { birdType, ageInDays, getCurrency, getRecommendedFeedsTitle, getRecommendedFeedsDescription, customFeeds, globalSettings } = useUnifiedStore();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState('commercial');
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,35 +23,14 @@ export default function RecommendedFeeds() {
   // Determine feed stage using shared logic that honors feeding system
   const { getState } = useUnifiedStore;
 
-  // Refresh feed data when component mounts
-  useEffect(() => {
-    useUnifiedStore.getState().loadCustomFeeds().catch(err => {
-      console.error('Error refreshing custom feeds in RecommendedFeeds:', err);
-    });
-  }, []);
+  // Get recommended feeds from store's customFeeds (populated from global settings)
   const recommendedFeeds = useMemo(() => {
     try {
       setError(null);
-
-      let feedStage = getFeedType(birdType, ageInDays);
-      // Alias: treat 'pre-starter' as 'starter' for recommendations
-      if (feedStage === 'pre-starter') feedStage = 'starter';
-
-      // Rendering rule:
-      // - If user has ever created customs for this category (hasUserCustoms[stage] === true),
-      //   render strictly from customFeeds[stage] (which may be an empty array after deletions).
-      // - Otherwise, fall back to bundled FEED_BRANDS via initial store state already present in customFeeds.
-      const hasCustom = (hasUserCustoms && hasUserCustoms[feedStage]) === true;
-
-      const list = customFeeds[feedStage];
-      if (hasCustom) {
-        return Array.isArray(list) ? list : [];
-      }
-      // When user has not created customs yet for this stage, whatever is in customFeeds
-      // represents the baseline defaults seeded from FEED_BRANDS.
-      return Array.isArray(list) ? list : [];
+      // Use getRecommendedFeeds logic but with store's customFeeds data
+      return getRecommendedFeeds(birdType, ageInDays, customFeeds);
     } catch (err) {
-      logError(err, 'Failed to get recommended feeds', { birdType, ageInDays });
+      logError(err, { message: 'Failed to get recommended feeds', birdType, ageInDays });
       setError(err);
       addToast({
         type: 'error',
@@ -59,27 +38,59 @@ export default function RecommendedFeeds() {
       });
       return [];
     }
-  }, [birdType, ageInDays, customFeeds, hasUserCustoms, _updateTrigger, addToast]);
+  }, [birdType, ageInDays, customFeeds, addToast]);
 
   const localFeedMix = useMemo(() => {
     try {
-      let feedStage = getFeedType(birdType, ageInDays);
-      // Alias: treat 'pre-starter' as 'starter' for local mix availability
-      if (feedStage === 'pre-starter') feedStage = 'starter';
+      // Use global settings data instead of static data
+      const globalLocalMixes = globalSettings?.globalLocalMixes;
+      if (!globalLocalMixes) {
+        return getLocalFeedMix(birdType, ageInDays); // Fallback to static data
+      }
       
-      // Get local mix from the management store for the appropriate stage
-      return localMixes[feedStage] || null;
+      // Determine the appropriate feed stage
+      let stage;
+      if (birdType === 'layer') {
+        if (ageInDays < 126) {
+          stage = ageInDays <= 28 ? 'starter' : 'grower';
+        } else {
+          stage = 'layer';
+        }
+      } else { // broiler
+        if (ageInDays <= 28) {
+          stage = 'starter';
+        } else if (ageInDays <= 42) {
+          stage = 'grower';
+        } else {
+          stage = 'finisher';
+        }
+      }
+      
+      // Get the mix for this stage from global settings
+      const stageMixes = globalLocalMixes[stage];
+      if (!stageMixes) {
+        return getLocalFeedMix(birdType, ageInDays); // Fallback to static data
+      }
+      
+      // Handle both array and single object formats
+      if (Array.isArray(stageMixes)) {
+        return stageMixes.length > 0 ? stageMixes[0] : null;
+      } else if (typeof stageMixes === 'object') {
+        return stageMixes;
+      }
+      
+      return null;
     } catch (err) {
-      logError(err, 'Failed to get local feed mix', { birdType, ageInDays });
+      logError(err, { message: 'Failed to get local feed mix', birdType, ageInDays });
       return null;
     }
-  }, [birdType, ageInDays, localMixes, _updateTrigger]);
+  }, [birdType, ageInDays, globalSettings]);
 
   const localFeedCost = useMemo(() => {
     try {
       return localFeedMix ? calculateLocalFeedCost(localFeedMix) : null;
     } catch (err) {
-      logError(err, 'Failed to calculate local feed cost', { localFeedMix });
+      logError(err, { message: 'Failed to calculate local feed cost', localFeedMix });
       return null;
     }
   }, [localFeedMix]);
@@ -90,7 +101,7 @@ export default function RecommendedFeeds() {
       const costData = calculateFeedCost(birdType, ageInDays, 1); // 1kg as base calculation
       return costData.pricePerKg;
     } catch (err) {
-      logError(err, 'Failed to calculate commercial feed price', { birdType, ageInDays });
+      logError(err, { message: 'Failed to calculate commercial feed price', birdType, ageInDays });
       return 1020; // Fallback to average price
     }
   }, [birdType, ageInDays]);
@@ -425,7 +436,7 @@ export default function RecommendedFeeds() {
               )}
 
               {/* Mixing Instructions */}
-              {localFeedMix.instructions && localFeedMix.instructions.length > 0 && (
+              {localFeedMix.instructions && Array.isArray(localFeedMix.instructions) && localFeedMix.instructions.length > 0 && (
                 <div className="card p-6">
                   <h3 className="text-lg font-display font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
                     🔧 Mixing Instructions

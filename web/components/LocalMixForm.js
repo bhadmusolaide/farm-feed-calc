@@ -19,7 +19,7 @@ export default function LocalMixForm({
     isCustom: true
   });
 
-  const [newIngredient, setNewIngredient] = useState({ name: '', percentage: '' });
+  const [newIngredient, setNewIngredient] = useState({ name: '', percentage: '', pricePerKg: '' });
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -29,7 +29,9 @@ export default function LocalMixForm({
         protein: editingLocalMix.protein || '',
         category: editingLocalMix.category || 'starter',
         ingredients: editingLocalMix.ingredients || [],
-        instructions: editingLocalMix.instructions || '',
+        instructions: Array.isArray(editingLocalMix.instructions) 
+          ? editingLocalMix.instructions.join('\n') 
+          : (editingLocalMix.instructions || ''),
         estimatedCost: editingLocalMix.estimatedCost || '',
         isCustom: editingLocalMix.isCustom !== undefined ? editingLocalMix.isCustom : true
       });
@@ -45,7 +47,7 @@ export default function LocalMixForm({
         isCustom: true
       });
     }
-    setNewIngredient({ name: '', percentage: '' });
+    setNewIngredient({ name: '', percentage: '', pricePerKg: '' });
     setErrors({});
   }, [editingLocalMix, isOpen]);
 
@@ -65,15 +67,16 @@ export default function LocalMixForm({
   };
 
   const handleAddIngredient = () => {
-    if (newIngredient.name.trim() && newIngredient.percentage) {
+    if (newIngredient.name.trim() && newIngredient.percentage && newIngredient.pricePerKg) {
       setFormData(prev => ({
         ...prev,
         ingredients: [...prev.ingredients, {
           name: newIngredient.name.trim(),
-          percentage: parseFloat(newIngredient.percentage)
+          percentage: parseFloat(newIngredient.percentage),
+          pricePerKg: parseFloat(newIngredient.pricePerKg)
         }]
       }));
-      setNewIngredient({ name: '', percentage: '' });
+      setNewIngredient({ name: '', percentage: '', pricePerKg: '' });
     }
   };
 
@@ -113,7 +116,10 @@ export default function LocalMixForm({
     const mixData = {
       ...formData,
       protein: parseFloat(formData.protein),
-      estimatedCost: formData.estimatedCost ? parseFloat(formData.estimatedCost) : undefined,
+      instructions: formData.instructions 
+        ? formData.instructions.split('\n').filter(line => line.trim() !== '') 
+        : [],
+      ...(formData.estimatedCost && { estimatedCost: parseFloat(formData.estimatedCost) }),
     };
     
     onSave(mixData);
@@ -216,8 +222,17 @@ export default function LocalMixForm({
                 max="100"
                 value={newIngredient.percentage}
                 onChange={(e) => setNewIngredient(prev => ({ ...prev, percentage: e.target.value }))}
-                className="w-24 px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-neutral-700 dark:text-neutral-100"
+                className="w-20 px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-neutral-700 dark:text-neutral-100"
                 placeholder="%"
+              />
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={newIngredient.pricePerKg}
+                onChange={(e) => setNewIngredient(prev => ({ ...prev, pricePerKg: e.target.value }))}
+                className="w-24 px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-neutral-700 dark:text-neutral-100"
+                placeholder="₦/kg"
               />
               <button
                 type="button"
@@ -239,6 +254,11 @@ export default function LocalMixForm({
                     <span className="ml-2 text-sm text-neutral-600 dark:text-neutral-400">
                       {ingredient.percentage}%
                     </span>
+                    {ingredient.pricePerKg && (
+                      <span className="ml-2 text-sm text-green-600 dark:text-green-400">
+                        ₦{ingredient.pricePerKg}/kg
+                      </span>
+                    )}
                   </div>
                   <button
                     type="button"

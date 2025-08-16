@@ -176,11 +176,24 @@ export const validateFormData = (formData) => {
 
 // Error logging utility
 export const logError = (error, context = {}) => {
+  // Handle cases where error might be null, undefined, or not a proper Error object
+  if (!error) {
+    error = new Error('Unknown error occurred');
+  }
+  
+  // If error is not an Error object, convert it
+  if (typeof error === 'string') {
+    error = new Error(error);
+  } else if (typeof error === 'object' && !error.message && !error.stack) {
+    // Handle plain objects or empty objects
+    error = new Error(JSON.stringify(error) || 'Unknown error occurred');
+  }
+  
   const errorLog = {
-    message: error.message,
+    message: error.message || 'Unknown error occurred',
     type: error.type || ERROR_TYPES.UNKNOWN,
     severity: error.severity || ERROR_SEVERITY.MEDIUM,
-    stack: error.stack,
+    stack: error.stack || 'No stack trace available',
     timestamp: new Date().toISOString(),
     context,
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown'

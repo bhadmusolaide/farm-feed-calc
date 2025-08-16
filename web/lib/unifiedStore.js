@@ -26,18 +26,6 @@ export const useUnifiedStore = create(
       
       // Initialize strategy
       updatePersistenceStrategy();
-      // Eagerly load persisted custom feeds and local mixes (no-op if unauthenticated)
-      // Ensure we also restore hasUserCustoms before UI reads categories to avoid default backfill on boot.
-      (async () => {
-        try {
-          await get()._restoreCustomizationFlags();
-          await get().loadCustomFeeds();
-          await get().loadLocalMixes();
-        } catch (e) {
-          // Non-fatal
-          console.warn('Initial data hydration skipped:', e?.message || e);
-        }
-      })();
       
       return {
         // Form inputs
@@ -59,12 +47,12 @@ export const useUnifiedStore = create(
         savedCalculations: [],
         favorites: [],
         currentCalculation: null,
-        // Custom/commercial feeds grouped by category
-        customFeeds: FEED_BRANDS, // Initialize with commercial feed brands (object keyed by category -> array of feeds)
-        // Tracks whether user has ever created custom feeds per category (prevents default backfill after deletions)
-        hasUserCustoms: Object.keys(FEED_BRANDS || {}).reduce((acc, k) => { acc[k] = false; return acc; }, {}),
-        // Locally defined mixes grouped by category
-        localMixes: LOCAL_FEED_MIXES, // Initialize with local feed mixes
+        // Custom/commercial feeds grouped by category - now sourced from global settings
+        customFeeds: {}, // Will be populated from globalSettings.globalFeeds
+        // Tracks whether user has ever created custom feeds per category (no longer needed for global feeds)
+        hasUserCustoms: {},
+        // Locally defined mixes grouped by category - now sourced from global settings
+        localMixes: {}, // Will be populated from globalSettings.globalLocalMixes
 
         // Per-user settings persisted locally
         userSettings: {
@@ -163,138 +151,9 @@ export const useUnifiedStore = create(
         },
  
         // Rehydrate custom feeds from persistence (authenticated only)
-        loadCustomFeeds: async () => {
-          try {
-            // Purge stale optimistic tombstones
-            get()._purgeOldDeleted();
-            try {
-              const debugNow = new Date().toISOString();
-              // Lightweight snapshot to avoid logging large arrays
-              const cats = Object.keys(get().customFeeds || {});
-              console.debug('[UnifiedStore][loadCustomFeeds] start', { t: debugNow, cats });
-            } catch {}
+        // loadCustomFeeds removed - feeds are now loaded from global settings
 
-            const strategy = get()._getPersistenceStrategy();
-            // If strategy cannot list (unauthenticated), keep bundled defaults
-            if (!strategy || typeof strategy.list !== 'function') return get().customFeeds;
-
-            const list = await strategy.list('customFeeds'); // array of feeds
-            try {
-              console.debug('[UnifiedStore][loadCustomFeeds] strategy.list(customFeeds) size', { size: Array.isArray(list) ? list.length : 'NA' });
-            } catch {}
-            // Group by normalized category to match UI consumption
-            const normalize = get()._normalizeCategory;
-            const grouped = {};
-            const tombstones = get()._recentlyDeleted || {};
-            const now = Date.now();
-            try {
-              console.debug('[UnifiedStore][loadCustomFeeds] tombstones', { ids: Object.keys(tombstones || {}) });
-            } catch {}
-
-            const effectiveList = Array.isArray(list) ? list : [];
-            // Load persisted suppression map (from meta) if present
-            try {
-              const strategyMeta = get()._getPersistenceStrategy();
-              if (strategyMeta && typeof strategyMeta.list === 'function') {
-                const meta = await strategyMeta.list('meta');
-                const entry = Array.isArray(meta) ? meta.find(m => m?.id === 'suppressedDeletes') : null;
-                if (entry && entry.value && typeof entry.value === 'object') {
-                  set({ _suppressedDeletes: entry.value });
-                }
-              }
-            } catch {}
-            
-            // Clean up old suppressed entries (TTL 30s)
-            const suppressed = { ...(get()._suppressedDeletes || {}) };
-            let suppressedChanged = false;
-            for (const [id, timestamp] of Object.entries(suppressed)) {
-              if (now - timestamp > 30000) {
-                delete suppressed[id];
-                suppressedChanged = true;
-              }
-            }
-            if (suppressedChanged) {
-              set({ _suppressedDeletes: suppressed });
-              // Persist cleaned suppression map
-              try {
-                const strategy = get()._getPersistenceStrategy();
-                if (strategy && typeof strategy.save === 'function') {
-                  await strategy.save('meta', { id: 'suppressedDeletes', value: suppressed });
-                }
-              } catch {}
-            }
-            
-            for (const feed of effectiveList) {
-              // Optimistic filter: drop items deleted in the last 2s
-              if (tombstones[feed.id] && now - tombstones[feed.id] < 2000) {
-                continue;
-              }
-              // Suppress IDs that were flagged due to eventual consistency across reloads (TTL 30s)
-              if (suppressed[feed.id] && (now - suppressed[feed.id] < 30000)) {
-                try { console.debug('[UnifiedStore][loadCustomFeeds] suppressed stale feed id', { id: feed.id }); } catch {}
-                continue;
-              }
-              const cat = normalize(feed.category) || 'starter';
-              if (!Array.isArray(grouped[cat])) grouped[cat] = [];
-              grouped[cat].push({ ...feed, category: cat });
-            }
-
-            // If nothing from DB, DO NOT fallback to FEED_BRANDS to avoid re-inserting deleted items.
-            // Keep existing in-memory state. Explicit resetCustomFeeds() should be used to restore defaults.
-            if (Object.keys(grouped).length === 0) {
-              try {
-                console.debug('[UnifiedStore][loadCustomFeeds] grouped empty -> keep existing customFeeds (no fallback)');
-              } catch {}
-              return get().customFeeds;
-            }
- 
-            // When grouped has data, mark hasUserCustoms true for those categories
-            const nextHas = { ...(get().hasUserCustoms || {}) };
-            for (const c of Object.keys(grouped)) {
-              nextHas[c] = true;
-            }
-            set({ customFeeds: grouped, hasUserCustoms: nextHas });
-            // Persist flags so a hard reload will not backfill defaults
-            try { await get()._persistCustomizationFlags(); } catch {}
-            try {
-              const cats = Object.keys(grouped || {});
-              console.debug('[UnifiedStore][loadCustomFeeds] applied grouped categories', { cats });
-            } catch {}
-            return grouped;
-          } catch (error) {
-            console.error('[UnifiedStore][loadCustomFeeds] error:', error);
-            // Fail-safe: keep existing state
-            return get().customFeeds;
-          }
-        },
-
-        // Rehydrate local mixes from persistence (authenticated only)
-        loadLocalMixes: async () => {
-          try {
-            const strategy = get()._getPersistenceStrategy();
-            if (!strategy || typeof strategy.list !== 'function') return get().localMixes;
-
-            const list = await strategy.list('localMixes'); // array of mixes
-            if (!Array.isArray(list) || list.length === 0) {
-              set({ localMixes: LOCAL_FEED_MIXES });
-              return LOCAL_FEED_MIXES;
-            }
-
-            const normalize = get()._normalizeCategory;
-            const grouped = {};
-            for (const mix of list) {
-              const cat = normalize(mix.category) || 'starter';
-              if (!Array.isArray(grouped[cat])) grouped[cat] = [];
-              grouped[cat].push({ ...mix, category: cat });
-            }
-
-            set({ localMixes: grouped });
-            return grouped;
-          } catch (error) {
-            console.error('Error loading local mixes:', error);
-            return get().localMixes;
-          }
-        },
+        // loadLocalMixes removed - local mixes are now loaded from global settings
 
         // Helpers for IDs
         _generateId: () => Math.random().toString(36).slice(2),
@@ -430,10 +289,11 @@ export const useUnifiedStore = create(
               state.rearingStyle
             );
             
-            // Get recommended feeds
+            // Get recommended feeds using store's customFeeds
             const recommendedFeeds = getRecommendedFeeds(
               state.birdType,
-              state.ageInDays
+              state.ageInDays,
+              state.customFeeds
             );
             
             // Get local feed mix
@@ -495,237 +355,15 @@ export const useUnifiedStore = create(
         },
         
         // Custom feed management
-        addCustomFeed: async (category, feedData) => {
-          const state = get();
-          const catInput = category || feedData?.category;
-          const cat = state._normalizeCategory(catInput);
-          if (!cat) throw new Error('Category is required to add a custom feed');
+        // Feed management methods removed - feeds are now global and managed through admin settings
 
-          const strategy = state._getPersistenceStrategy();
-          const id = feedData?.id || state._generateId();
-          const newFeed = {
-            id,
-            isCustom: true,
-            lastUpdated: new Date().toISOString(),
-            ...feedData,
-            category: cat
-          };
-          // Ensure nested estimatedPrice shape remains intact if present
-          if (newFeed.estimatedPrice && typeof newFeed.estimatedPrice !== 'object') {
-            newFeed.estimatedPrice = { '25kg': Number(newFeed.estimatedPrice) || 0 };
-          }
 
-          // Persist if supported
-          if (strategy && typeof strategy.save === 'function') {
-            try { console.debug('[UnifiedStore][addCustomFeed] persisting new feed', { id, cat }); } catch {}
-            await strategy.save('customFeeds', newFeed);
-          }
 
-          // Update in-memory state optimistically
-          const current = get().customFeeds || {};
-          const list = Array.isArray(current[cat]) ? current[cat] : [];
-          const nextHas = { ...(get().hasUserCustoms || {}) , [cat]: true };
-          set({
-            customFeeds: {
-              ...current,
-              [cat]: [...list.filter(f => f.id !== id), newFeed]
-            },
-            hasUserCustoms: nextHas
-          });
 
-          // Persist customization flags
-          try { await state._persistCustomizationFlags(); } catch {}
 
-          // Force immediate rehydration to ensure consistency
-          try {
-            console.debug('[UnifiedStore][addCustomFeed] immediate rehydrate after add', { id });
-            await state.loadCustomFeeds();
-          } catch (e) {
-            console.debug('[UnifiedStore][addCustomFeed] rehydrate error', e?.message);
-          }
-          
-          // Trigger component updates
-          state._triggerUpdate();
-          return id;
-        },
 
-        updateCustomFeed: async (category, feedId, updates) => {
-          const state = get();
-          const catInput = category || updates?.category;
-          const cat = state._normalizeCategory(catInput);
-          if (!cat) throw new Error('Category is required to update a custom feed');
-          if (!feedId) throw new Error('Feed ID is required to update a custom feed');
 
-          const current = get().customFeeds || {};
-          const list = Array.isArray(current[cat]) ? current[cat] : [];
-          const existing = list.find(f => f.id === feedId);
-          if (!existing) throw new Error('Feed not found');
 
-          const updated = {
-            ...existing,
-            ...updates,
-            category: cat,
-            lastUpdated: new Date().toISOString()
-          };
-          if (updated.estimatedPrice && typeof updated.estimatedPrice !== 'object') {
-            updated.estimatedPrice = { '25kg': Number(updated.estimatedPrice) || 0 };
-          }
-
-          // Persist if supported
-          const strategy = state._getPersistenceStrategy();
-          if (strategy && typeof strategy.update === 'function') {
-            try { console.debug('[UnifiedStore][updateCustomFeed] updating feed', { feedId, cat }); } catch {}
-            await strategy.update('customFeeds', feedId, updated);
-          } else if (strategy && typeof strategy.save === 'function') {
-            // fallback to save
-            try { console.debug('[UnifiedStore][updateCustomFeed] fallback save', { feedId, cat }); } catch {}
-            await strategy.save('customFeeds', updated);
-          }
-
-          // Update state optimistically
-          const nextHas = { ...(get().hasUserCustoms || {}) , [cat]: true };
-          set({
-            customFeeds: {
-              ...current,
-              [cat]: list.map(f => (f.id === feedId ? updated : f))
-            },
-            hasUserCustoms: nextHas
-          });
-
-          // Force immediate rehydration to ensure consistency
-          try {
-            console.debug('[UnifiedStore][updateCustomFeed] immediate rehydrate after update', { feedId });
-            await state.loadCustomFeeds();
-          } catch (e) {
-            console.debug('[UnifiedStore][updateCustomFeed] rehydrate error', e?.message);
-          }
-          
-          // Trigger component updates
-          state._triggerUpdate();
-          return true;
-        },
-
-        deleteCustomFeed: async (category, feedId) => {
-          const state = get();
-          const cat = state._normalizeCategory(category);
-          if (!cat) throw new Error('Category is required to delete a custom feed');
-          if (!feedId) throw new Error('Feed ID is required to delete a custom feed');
-
-          // Mark optimistic tombstone to prevent flicker on eventual consistency
-          try { console.debug('[UnifiedStore][deleteCustomFeed] mark tombstone', { feedId, cat }); } catch {}
-          state._markDeleted(feedId);
-
-          // Add to suppressed deletes for persistence across reloads
-          const suppressed = { ...(get()._suppressedDeletes || {}) };
-          suppressed[feedId] = Date.now();
-          set({ _suppressedDeletes: suppressed });
-
-          // Persist suppression map
-          try {
-            const strategy = state._getPersistenceStrategy();
-            if (strategy && typeof strategy.save === 'function') {
-              await strategy.save('meta', { id: 'suppressedDeletes', value: suppressed });
-            }
-          } catch (e) {
-            console.debug('[UnifiedStore][deleteCustomFeed] failed to persist suppression', e?.message);
-          }
-
-          // Persist deletion if supported
-          const strategy = state._getPersistenceStrategy();
-          if (strategy && typeof strategy.delete === 'function') {
-            try { console.debug('[UnifiedStore][deleteCustomFeed] deleting via strategy.delete', { feedId }); } catch {}
-            await strategy.delete('customFeeds', feedId);
-          } else if (strategy && strategy.db && typeof strategy.db.deleteCustomFeed === 'function') {
-            try { console.debug('[UnifiedStore][deleteCustomFeed] deleting via strategy.db.deleteCustomFeed', { feedId }); } catch {}
-            await strategy.db.deleteCustomFeed(feedId);
-          }
-
-          // Update state optimistically
-          const current = get().customFeeds || {};
-          const list = Array.isArray(current[cat]) ? current[cat] : [];
-          try { console.debug('[UnifiedStore][deleteCustomFeed] optimistic remove from state', { cat, before: list.length, after: list.filter(f => f.id !== feedId).length }); } catch {}
-          
-          // Also update hasUserCustoms to ensure the category is marked as having user customs
-          const nextHas = { ...(get().hasUserCustoms || {}) };
-          nextHas[cat] = true; // Keep it true even after deletion
-          
-          set({
-            customFeeds: {
-              ...current,
-              [cat]: list.filter(f => f.id !== feedId)
-            },
-            hasUserCustoms: nextHas
-          });
-
-          // Force immediate rehydration to ensure consistency
-          try {
-            console.debug('[UnifiedStore][deleteCustomFeed] immediate rehydrate');
-            await state.loadCustomFeeds();
-          } catch (e) {
-            console.debug('[UnifiedStore][deleteCustomFeed] rehydrate error', e?.message);
-          }
-
-          // Trigger component updates
-          state._triggerUpdate();
-          return true;
-        },
-
-        updateLocalMix: async (category, mixData) => {
-          const state = get();
-          const cat = state._normalizeCategory(category);
-          if (!cat) throw new Error('Category is required to update a local mix');
-
-          const strategy = state._getPersistenceStrategy();
-          const updated = {
-            ...mixData,
-            category: cat,
-            lastUpdated: new Date().toISOString()
-          };
-
-          // Persist if supported
-          if (strategy && typeof strategy.update === 'function') {
-            try { console.debug('[UnifiedStore][updateLocalMix] updating mix', { cat }); } catch {}
-            await strategy.update('localMixes', mixData.id, updated);
-          } else if (strategy && typeof strategy.save === 'function') {
-            try { console.debug('[UnifiedStore][updateLocalMix] fallback save', { cat }); } catch {}
-            await strategy.save('localMixes', updated);
-          }
-
-          // Update state optimistically
-          const current = get().localMixes || {};
-          set({
-            localMixes: {
-              ...current,
-              [cat]: updated
-            }
-          });
-
-          // Force immediate rehydration to ensure consistency
-          try {
-            console.debug('[UnifiedStore][updateLocalMix] immediate rehydrate after update', { cat });
-            await state.loadLocalMixes();
-          } catch (e) {
-            console.debug('[UnifiedStore][updateLocalMix] rehydrate error', e?.message);
-          }
-
-          // Trigger component updates
-          state._triggerUpdate();
-          return true;
-        },
-
-        resetCustomFeeds: async () => {
-          const state = get();
-          // Clear from persistence if supported
-          const strategy = state._getPersistenceStrategy();
-          if (strategy && typeof strategy.clear === 'function') {
-            await strategy.clear('customFeeds');
-          }
-          // Reset to bundled FEED_BRANDS
-          set({ customFeeds: FEED_BRANDS });
-          // Trigger component updates
-          state._triggerUpdate();
-          return true;
-        },
 
         // Saved calculations management
         saveResult: async (resultData, name, autoProgression = false) => {
@@ -1317,9 +955,14 @@ export const useUnifiedStore = create(
                   showOptimizationInsights: true,
                   showBestPractices: true
                 },
+                // Global feed data - moved from local storage to global settings
+                globalFeeds: FEED_BRANDS,
+                globalLocalMixes: LOCAL_FEED_MIXES,
                 logoVersion: Date.now()
               };
               set({ globalSettings: defaultSettings, isLoadingGlobal: false, error: null });
+              // Populate feed data from global settings
+              get().populateFeedDataFromGlobal(defaultSettings);
               return defaultSettings;
             }
             
@@ -1334,6 +977,8 @@ export const useUnifiedStore = create(
             if (snap.exists()) {
               const data = snap.data();
               set({ globalSettings: data, isLoadingGlobal: false, error: null });
+              // Populate feed data from global settings
+              get().populateFeedDataFromGlobal(data);
               return data;
             }
 
@@ -1379,12 +1024,17 @@ export const useUnifiedStore = create(
                 showOptimizationInsights: true,
                 showBestPractices: true
               },
+              // Global feed data - moved from local storage to global settings
+              globalFeeds: FEED_BRANDS,
+              globalLocalMixes: LOCAL_FEED_MIXES,
               logoVersion: Date.now()
             };
 
             // Seed Firestore then update state
             await setDoc(settingsDocRef, defaultSettings, { merge: true });
             set({ globalSettings: defaultSettings, isLoadingGlobal: false, error: null });
+            // Populate feed data from global settings
+            get().populateFeedDataFromGlobal(defaultSettings);
             return defaultSettings;
           } catch (error) {
             // Check if this is a permission error for unauthenticated users
@@ -1497,6 +1147,61 @@ export const useUnifiedStore = create(
           }
         },
 
+        // Restore commercial feeds to original FEED_BRANDS data
+        restoreCommercialFeeds: async () => {
+          try {
+            const currentSettings = get().globalSettings;
+            if (!currentSettings) {
+              throw new Error('Global settings not loaded');
+            }
+
+            // Reset globalFeeds to original FEED_BRANDS data
+            const updatedSettings = {
+              ...currentSettings,
+              globalFeeds: { ...FEED_BRANDS }
+            };
+            
+            await get().updateSettings(updatedSettings);
+            
+            // Update local state immediately
+            get().populateFeedDataFromGlobal(updatedSettings);
+            get()._triggerUpdate();
+            
+            return true;
+          } catch (error) {
+            console.error('Error restoring commercial feeds:', error);
+            throw error;
+          }
+        },
+
+        // Populate feed data from global settings
+        populateFeedDataFromGlobal: (globalSettings) => {
+          const feedData = globalSettings?.globalFeeds || FEED_BRANDS;
+          const rawLocalMixData = globalSettings?.globalLocalMixes || LOCAL_FEED_MIXES;
+          
+          // Ensure localMixes structure is consistent (arrays for each category)
+          const localMixData = {};
+          Object.keys(rawLocalMixData).forEach(category => {
+            const categoryData = rawLocalMixData[category];
+            if (Array.isArray(categoryData)) {
+              localMixData[category] = categoryData;
+            } else if (categoryData && typeof categoryData === 'object') {
+              // Convert single object to array
+              localMixData[category] = [categoryData];
+            } else {
+              // Fallback to default if available
+              const defaultMix = LOCAL_FEED_MIXES[category];
+              localMixData[category] = defaultMix ? [defaultMix] : [];
+            }
+          });
+          
+          set({
+            customFeeds: feedData,
+            localMixes: localMixData,
+            hasUserCustoms: Object.keys(feedData || {}).reduce((acc, k) => { acc[k] = true; return acc; }, {})
+          });
+        },
+
         // Offline functionality methods
         setOnlineStatus: (isOnline) => set({ isOnline }),
         
@@ -1531,6 +1236,295 @@ export const useUnifiedStore = create(
         // Force component re-renders after CRUD operations
         _triggerUpdate: () => {
           set(state => ({ _updateTrigger: state._updateTrigger + 1 }));
+        },
+
+        // Admin feed management functions
+        addGlobalFeed: async (category, feedData) => {
+          try {
+            const currentSettings = get().globalSettings;
+            const currentCategoryFeeds = currentSettings.globalFeeds[category] || [];
+            const updatedFeeds = {
+              ...currentSettings.globalFeeds,
+              [category]: [...currentCategoryFeeds, feedData]
+            };
+            
+            const updatedSettings = {
+              ...currentSettings,
+              globalFeeds: updatedFeeds
+            };
+            
+            // Use the global settings update function directly instead of get().updateSettings()
+            set({ isLoadingGlobal: true, error: null });
+            
+            // Persist to Firestore
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { db } = await import('./firebase');
+            const settingsDocRef = doc(db, 'global_settings', 'site');
+            await setDoc(settingsDocRef, updatedSettings, { merge: true });
+            
+            // Reflect in store
+            set({ globalSettings: updatedSettings, isLoadingGlobal: false });
+            
+            get().populateFeedDataFromGlobal(updatedSettings);
+            get()._triggerUpdate();
+            return true;
+          } catch (error) {
+            console.error('Error adding global feed:', error);
+            set({ isLoadingGlobal: false, error: error?.message || 'Failed to add global feed' });
+            throw error;
+          }
+        },
+
+        editGlobalFeed: async (category, feedId, feedData) => {
+          try {
+            const currentSettings = get().globalSettings;
+            const currentCategoryFeeds = currentSettings.globalFeeds[category] || [];
+            const updatedCategoryFeeds = currentCategoryFeeds.map(feed => 
+              feed.id === feedId ? feedData : feed
+            );
+            const updatedFeeds = {
+              ...currentSettings.globalFeeds,
+              [category]: updatedCategoryFeeds
+            };
+            
+            const updatedSettings = {
+              ...currentSettings,
+              globalFeeds: updatedFeeds
+            };
+            
+            // Use the global settings update function directly instead of get().updateSettings()
+            set({ isLoadingGlobal: true, error: null });
+            
+            // Persist to Firestore
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { db } = await import('./firebase');
+            const settingsDocRef = doc(db, 'global_settings', 'site');
+            await setDoc(settingsDocRef, updatedSettings, { merge: true });
+            
+            // Reflect in store
+            set({ globalSettings: updatedSettings, isLoadingGlobal: false });
+            
+            get().populateFeedDataFromGlobal(updatedSettings);
+            get()._triggerUpdate();
+            return true;
+          } catch (error) {
+            console.error('Error editing global feed:', error);
+            set({ isLoadingGlobal: false, error: error?.message || 'Failed to edit global feed' });
+            throw error;
+          }
+        },
+
+        deleteGlobalFeed: async (category, feedId) => {
+          try {
+            const currentSettings = get().globalSettings;
+            const currentCategoryFeeds = currentSettings.globalFeeds[category] || [];
+            const updatedCategoryFeeds = currentCategoryFeeds.filter(feed => feed.id !== feedId);
+            const updatedFeeds = {
+              ...currentSettings.globalFeeds,
+              [category]: updatedCategoryFeeds
+            };
+            
+            const updatedSettings = {
+              ...currentSettings,
+              globalFeeds: updatedFeeds
+            };
+            
+            // Use the global settings update function directly instead of get().updateSettings()
+            set({ isLoadingGlobal: true, error: null });
+            
+            // Persist to Firestore
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { db } = await import('./firebase');
+            const settingsDocRef = doc(db, 'global_settings', 'site');
+            await setDoc(settingsDocRef, updatedSettings, { merge: true });
+            
+            // Reflect in store
+            set({ globalSettings: updatedSettings, isLoadingGlobal: false });
+            
+            get().populateFeedDataFromGlobal(updatedSettings);
+            get()._triggerUpdate();
+            return true;
+          } catch (error) {
+            console.error('Error deleting global feed:', error);
+            set({ isLoadingGlobal: false, error: error?.message || 'Failed to delete global feed' });
+            throw error;
+          }
+        },
+
+        addGlobalLocalMix: async (category, mixData) => {
+          try {
+            const currentSettings = get().globalSettings;
+            const currentCategoryMixes = currentSettings.globalLocalMixes[category];
+            
+            // Generate unique ID for the new mix
+            const mixId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const newMix = { ...mixData, id: mixId };
+            
+            let updatedCategoryMixes;
+            if (Array.isArray(currentCategoryMixes)) {
+              // Already an array, add to it
+              updatedCategoryMixes = [...currentCategoryMixes, newMix];
+            } else if (currentCategoryMixes && typeof currentCategoryMixes === 'object') {
+              // Convert single object to array and add new mix
+              updatedCategoryMixes = [currentCategoryMixes, newMix];
+            } else {
+              // No existing mixes, just create array with new mix
+              updatedCategoryMixes = [newMix];
+            }
+            
+            const updatedMixes = {
+              ...currentSettings.globalLocalMixes,
+              [category]: updatedCategoryMixes
+            };
+            
+            const updatedSettings = {
+              ...currentSettings,
+              globalLocalMixes: updatedMixes
+            };
+            
+            // Use the global settings update function directly instead of get().updateSettings()
+            set({ isLoadingGlobal: true, error: null });
+            
+            // Persist to Firestore
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { db } = await import('./firebase');
+            const settingsDocRef = doc(db, 'global_settings', 'site');
+            await setDoc(settingsDocRef, updatedSettings, { merge: true });
+            
+            // Reflect in store
+            set({ globalSettings: updatedSettings, isLoadingGlobal: false });
+            
+            get().populateFeedDataFromGlobal(updatedSettings);
+            get()._triggerUpdate();
+            return true;
+          } catch (error) {
+            console.error('Error adding global local mix:', error);
+            set({ isLoadingGlobal: false, error: error?.message || 'Failed to add local mix' });
+            throw error;
+          }
+        },
+
+        editGlobalLocalMix: async (category, mixId, mixData) => {
+          try {
+            const currentSettings = get().globalSettings;
+            const currentCategoryMixes = currentSettings.globalLocalMixes[category];
+            
+            let updatedCategoryMixes;
+            if (Array.isArray(currentCategoryMixes)) {
+              // Find and update the specific mix
+              updatedCategoryMixes = currentCategoryMixes.map(mix => 
+                mix.id === mixId ? { ...mixData, id: mixId } : mix
+              );
+            } else if (currentCategoryMixes && typeof currentCategoryMixes === 'object') {
+              // Single object case - if editing the default mix, just update it
+              if (mixId === category || !mixId) {
+                updatedCategoryMixes = { ...mixData, id: mixId };
+              } else {
+                // Convert to array and update
+                updatedCategoryMixes = [{ ...mixData, id: mixId }];
+              }
+            } else {
+              // No existing mixes, create new one
+              updatedCategoryMixes = [{ ...mixData, id: mixId }];
+            }
+            
+            const updatedMixes = {
+              ...currentSettings.globalLocalMixes,
+              [category]: updatedCategoryMixes
+            };
+            
+            const updatedSettings = {
+              ...currentSettings,
+              globalLocalMixes: updatedMixes
+            };
+            
+            // Use the global settings update function directly instead of get().updateSettings()
+            set({ isLoadingGlobal: true, error: null });
+            
+            // Persist to Firestore
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { db } = await import('./firebase');
+            const settingsDocRef = doc(db, 'global_settings', 'site');
+            await setDoc(settingsDocRef, updatedSettings, { merge: true });
+            
+            // Reflect in store
+            set({ globalSettings: updatedSettings, isLoadingGlobal: false });
+            
+            get().populateFeedDataFromGlobal(updatedSettings);
+            get()._triggerUpdate();
+            return true;
+          } catch (error) {
+            console.error('Error editing global local mix:', error);
+            set({ isLoadingGlobal: false, error: error?.message || 'Failed to edit local mix' });
+            throw error;
+          }
+        },
+
+        deleteGlobalLocalMix: async (category, mixId) => {
+          try {
+            console.log('🔥 DEBUG: Starting deleteGlobalLocalMix', { category, mixId });
+            const currentSettings = get().globalSettings;
+            console.log('🔥 DEBUG: Current settings:', currentSettings);
+            const currentCategoryMixes = currentSettings.globalLocalMixes[category];
+            console.log('🔥 DEBUG: Current category mixes:', currentCategoryMixes);
+            
+            let updatedCategoryMixes;
+            if (Array.isArray(currentCategoryMixes)) {
+              // Remove the specific mix from the array
+              // Note: Mix objects don't have 'id' property, so we need to match by name or create IDs
+              // The mixId appears to be the category name, so we need a different approach
+              // Let's check if the mix name contains the category or use index-based deletion
+              updatedCategoryMixes = currentCategoryMixes.filter((mix, index) => {
+                const mixSlug = mix.name ? mix.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : '';
+                const nameContainsCategory = mix.name && mix.name.toLowerCase().includes(mixId.toLowerCase());
+                const shouldDelete = nameContainsCategory || mixSlug.includes(mixId) || index === 0; // Assume first item if category match
+                return !shouldDelete; // Keep items that should NOT be deleted
+              });
+              
+              // Allow empty arrays - don't force default mix back
+            } else if (currentCategoryMixes && typeof currentCategoryMixes === 'object') {
+              // Single object case - if deleting it, make array empty
+              updatedCategoryMixes = [];
+            } else {
+              // No existing mixes, keep empty
+              updatedCategoryMixes = [];
+            }
+            
+            const updatedMixes = {
+              ...currentSettings.globalLocalMixes,
+              [category]: updatedCategoryMixes
+            };
+            
+            const updatedSettings = {
+              ...currentSettings,
+              globalLocalMixes: updatedMixes
+            };
+            
+            // Use the global settings update function directly instead of get().updateSettings()
+            set({ isLoadingGlobal: true, error: null });
+            console.log('🔥 DEBUG: Set loading state');
+            
+            // Persist to Firestore
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { db } = await import('./firebase');
+            const settingsDocRef = doc(db, 'global_settings', 'site');
+            console.log('🔥 DEBUG: About to save to Firestore');
+            await setDoc(settingsDocRef, updatedSettings, { merge: true });
+            console.log('🔥 DEBUG: Successfully saved to Firestore');
+            
+            // Reflect in store
+            set({ globalSettings: updatedSettings, isLoadingGlobal: false });
+            console.log('🔥 DEBUG: Updated store state');
+            
+            get().populateFeedDataFromGlobal(updatedSettings);
+            get()._triggerUpdate();
+            console.log('🔥 DEBUG: Triggered updates, deletion complete');
+            return true;
+          } catch (error) {
+            console.error('🔥 DEBUG: Error in deleteGlobalLocalMix:', error);
+            set({ isLoadingGlobal: false, error: error?.message || 'Failed to delete local mix' });
+            throw error;
+          }
         }
       };
     },
@@ -1549,6 +1543,16 @@ export const useUnifiedStore = create(
     }
   )
 );
+
+// Initialize async data after store creation
+(async () => {
+  try {
+    await useUnifiedStore.getState()._restoreCustomizationFlags();
+  } catch (e) {
+    // Non-fatal
+    console.warn('Initial data hydration skipped:', e?.message || e);
+  }
+})();
 
 // Export helper functions for backward compatibility
 export const getAvailableBreeds = (birdType) => {

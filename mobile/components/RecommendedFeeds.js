@@ -20,7 +20,7 @@ export default function RecommendedFeeds() {
       setError(null);
       return getRecommendedFeeds(birdType, ageInDays);
     } catch (err) {
-      logError(err, 'Failed to get recommended feeds', { birdType, ageInDays });
+      logError(err, { message: 'Failed to get recommended feeds', birdType, ageInDays });
       setError(err);
       const friendly = formatErrorForUser(err);
       addToast({
@@ -35,7 +35,7 @@ export default function RecommendedFeeds() {
     try {
       return getLocalFeedMix(birdType, ageInDays);
     } catch (err) {
-      logError(err, 'Failed to get local feed mix', { birdType, ageInDays });
+      logError(err, { message: 'Failed to get local feed mix', birdType, ageInDays });
       return null;
     }
   }, [birdType, ageInDays]);
@@ -44,7 +44,7 @@ export default function RecommendedFeeds() {
     try {
       return localFeedMix ? calculateLocalFeedCost(localFeedMix) : null;
     } catch (err) {
-      logError(err, 'Failed to calculate local feed cost', { localFeedMix });
+      logError(err, { message: 'Failed to calculate local feed cost', localFeedMix });
       return null;
     }
   }, [localFeedMix]);
@@ -55,7 +55,7 @@ export default function RecommendedFeeds() {
       const costData = calculateFeedCost(birdType, ageInDays, 1); // 1kg as base calculation
       return costData.pricePerKg;
     } catch (err) {
-      logError(err, 'Failed to calculate commercial feed price', { birdType, ageInDays });
+      logError(err, { message: 'Failed to calculate commercial feed price', birdType, ageInDays });
       return 1020; // Fallback to average price
     }
   }, [birdType, ageInDays]);

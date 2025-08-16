@@ -105,3 +105,4 @@ rules = {
 - Listen more carefully to user feedback about what's actually working vs. not working
 - Don't waste time on complex solutions when simple ones exist
 - Acknowledge mistakes quickly and learn from them
+- When you are asked to debug or investigate, always provide your findings, give recommendations and ask for permission before implementing anything.

@@ -115,7 +115,7 @@ export default function FeedResults() {
       setTimeout(() => setCopiedSection(null), 2000);
       toast.success('Copied to clipboard!');
     } catch (err) {
-      logError(err, 'Failed to copy to clipboard', { section });
+      logError(err, { message: 'Failed to copy to clipboard', section });
       toast.error(formatErrorForUser(err).message);
     }
   };
@@ -170,7 +170,7 @@ export default function FeedResults() {
       }, 100);
       
     } catch (error) {
-      logError(error, 'Failed to save results', { resultData });
+      logError(error, { message: 'Failed to save results', resultData });
       toast.error(formatErrorForUser(error).message);
     } finally {
       setIsSaving(false);

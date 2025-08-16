@@ -48,6 +48,11 @@ export class LocalStorageStrategy extends PersistenceStrategy {
 
   async save(key, data) {
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined' || !window.localStorage) {
+        throw new Error('localStorage not available in SSR environment');
+      }
+      
       const storageKey = this._getStorageKey(key);
       // Ensure we have an array from storage (list is async; await it)
       const existing = await this.list(key);
@@ -85,6 +90,11 @@ export class LocalStorageStrategy extends PersistenceStrategy {
 
   async delete(key, id) {
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined' || !window.localStorage) {
+        throw new Error('localStorage not available in SSR environment');
+      }
+      
       const storageKey = this._getStorageKey(key);
       const items = await this.list(key);
       const filtered = (Array.isArray(items) ? items : []).filter(item => item.id !== id);
@@ -98,6 +108,11 @@ export class LocalStorageStrategy extends PersistenceStrategy {
 
   async list(key) {
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return [];
+      }
+      
       const storageKey = this._getStorageKey(key);
       const stored = localStorage.getItem(storageKey);
       const parsed = stored ? JSON.parse(stored) : [];
@@ -131,6 +146,11 @@ export class LocalStorageStrategy extends PersistenceStrategy {
 
   async clear(key) {
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return false;
+      }
+      
       const storageKey = this._getStorageKey(key);
       localStorage.removeItem(storageKey);
       return true;
@@ -142,6 +162,11 @@ export class LocalStorageStrategy extends PersistenceStrategy {
 
   isAvailable() {
     try {
+      // Check if we're in a browser environment first
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return false;
+      }
+      
       const test = '__localStorage_test__';
       localStorage.setItem(test, 'test');
       localStorage.removeItem(test);

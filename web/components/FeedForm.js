@@ -22,9 +22,10 @@ export default function FeedForm({
     phosphorus: '',
     fiber: '',
     fat: '',
+    ageRange: '',
     description: '',
-    packaging: [],
-    availability: [],
+    availability: '',
+    packaging: ['25kg'],
     tags: [],
     estimatedPrice: {
       '25kg': ''
@@ -46,9 +47,10 @@ export default function FeedForm({
         phosphorus: editingFeed.phosphorus || '',
         fiber: editingFeed.fiber || '',
         fat: editingFeed.fat || '',
+        ageRange: editingFeed.ageRange || '',
         description: editingFeed.description || '',
-        packaging: editingFeed.packaging || [],
-        availability: editingFeed.availability || [],
+        availability: editingFeed.availability || '',
+        packaging: editingFeed.packaging || ['25kg'],
         tags: editingFeed.tags || [],
         estimatedPrice: editingFeed.estimatedPrice || { '25kg': '' },
         currency: editingFeed.currency || 'NGN',
@@ -65,9 +67,10 @@ export default function FeedForm({
         phosphorus: '',
         fiber: '',
         fat: '',
+        ageRange: '',
         description: '',
-        packaging: [],
-        availability: [],
+        availability: '',
+        packaging: ['25kg'],
         tags: [],
         estimatedPrice: {
           '25kg': ''
@@ -139,10 +142,18 @@ export default function FeedForm({
       id: editingFeed?.id || `custom_${Date.now()}`,
       protein: parseFloat(formData.protein),
       calcium: parseFloat(formData.calcium),
-      phosphorus: formData.phosphorus ? parseFloat(formData.phosphorus) : undefined,
-      fiber: formData.fiber ? parseFloat(formData.fiber) : undefined,
-      fat: formData.fat ? parseFloat(formData.fat) : undefined,
     };
+    
+    // Only add optional fields if they have values (avoid undefined)
+    if (formData.phosphorus && formData.phosphorus.trim() !== '') {
+      feedData.phosphorus = parseFloat(formData.phosphorus);
+    }
+    if (formData.fiber && formData.fiber.trim() !== '') {
+      feedData.fiber = parseFloat(formData.fiber);
+    }
+    if (formData.fat && formData.fat.trim() !== '') {
+      feedData.fat = parseFloat(formData.fat);
+    }
     
     onSave(feedData);
   };
@@ -217,6 +228,34 @@ export default function FeedForm({
               <option value="finisher">Finisher</option>
               <option value="layer">Layer</option>
             </select>
+          </div>
+
+          {/* Age Range */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+              Age Range
+            </label>
+            <input
+              type="text"
+              value={formData.ageRange}
+              onChange={(e) => handleInputChange('ageRange', e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-neutral-700 dark:text-neutral-100"
+              placeholder="e.g., 0-4 weeks"
+            />
+          </div>
+
+          {/* Availability */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+              Availability
+            </label>
+            <input
+              type="text"
+              value={formData.availability}
+              onChange={(e) => handleInputChange('availability', e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-neutral-700 dark:text-neutral-100"
+              placeholder="e.g., Nationwide, Lagos, Ogun"
+            />
           </div>
 
           {/* Nutritional Information */}

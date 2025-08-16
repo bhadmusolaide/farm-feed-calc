@@ -111,7 +111,8 @@ export const useFeedStore = create(
         });
         
         if (error) {
-          logError(error, 'Feed calculation failed', {
+          logError(error, {
+            message: 'Feed calculation failed',
             birdType: state.birdType,
             breed: state.breed,
             ageInDays: state.ageInDays,

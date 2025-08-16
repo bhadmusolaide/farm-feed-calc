@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Save, Upload, X, Eye, EyeOff, Plus, Edit, Trash2, RotateCcw, LogOut } from 'lucide-react';
+import { ArrowLeft, Save, Upload, X, Eye, EyeOff, Plus, Edit, Trash2, RotateCcw, RefreshCw, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUnifiedStore } from '../../lib/unifiedStore';
 import useFirebaseAuthStore from '../../lib/firebaseAuthStore';
@@ -20,31 +20,43 @@ export default function SettingsPage() {
     error,
     updateSettings, 
     resetToDefaults, 
+    restoreCommercialFeeds,
     loadGlobalSettings,
     initialize,
     customFeeds, 
-    localMixes, 
-    addCustomFeed, 
-    updateCustomFeed, 
-    deleteCustomFeed, 
-    updateLocalMix, 
-    resetCustomFeeds,
+    localMixes,
     FEED_CATEGORIES,
     PACKAGING_OPTIONS,
     AVAILABILITY_REGIONS,
     FEED_TAGS,
-    createEmptyFeed,
-    createEmptyLocalMix
+    addGlobalFeed,
+    editGlobalFeed,
+    deleteGlobalFeed,
+    addGlobalLocalMix,
+    editGlobalLocalMix,
+    deleteGlobalLocalMix
   } = useUnifiedStore();
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
-  const [activeTab, setActiveTab] = useState('site');
-  const [editingFeed, setEditingFeed] = useState(null);
-  const [editingLocalMix, setEditingLocalMix] = useState(null);
-  const [showFeedForm, setShowFeedForm] = useState(false);
-  const [showLocalMixForm, setShowLocalMixForm] = useState(false);
+  // Initialize activeTab from URL parameter or default to 'site'
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam && ['site', 'feeds', 'admin'].includes(tabParam)) {
+        return tabParam;
+      }
+    }
+    return 'site';
+  });
+  // Feed form state variables removed - feeds are now managed globally
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [showAddFeedForm, setShowAddFeedForm] = useState(false);
+  const [showAddMixForm, setShowAddMixForm] = useState(false);
+  const [editingFeed, setEditingFeed] = useState(null);
+  const [editingMix, setEditingMix] = useState(null);
 
   const [formData, setFormData] = useState({
     siteTitle: '',
@@ -61,6 +73,33 @@ export default function SettingsPage() {
     heroVideoUrl: '',
     heroVideoTitle: '',
   });
+
+  // Handle authentication loading state
+  useEffect(() => {
+    // Set a timeout to stop auth loading after a reasonable time
+    const authTimeout = setTimeout(() => {
+      setIsAuthLoading(false);
+    }, 2000);
+
+    // If authentication state is determined, stop loading immediately
+    if (isAuthenticated !== undefined) {
+      setIsAuthLoading(false);
+      clearTimeout(authTimeout);
+    }
+
+    return () => clearTimeout(authTimeout);
+  }, [isAuthenticated]);
+
+
+
+  // Update URL when tab changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location);
+      url.searchParams.set('tab', activeTab);
+      window.history.replaceState({}, '', url);
+    }
+  }, [activeTab]);
 
   // Initialize global settings on component mount and when auth changes
   useEffect(() => {
@@ -82,7 +121,9 @@ export default function SettingsPage() {
       }
     };
 
-    initializeSettings();
+    if (isAuthenticated) {
+      initializeSettings();
+    }
 
     // Safety timeout to prevent endless spinner
     const timeoutId = setTimeout(() => {
@@ -97,15 +138,7 @@ export default function SettingsPage() {
     };
   }, [initialize, isAuthenticated]);
 
-  // Refresh feed data when switching to feeds tab
-  useEffect(() => {
-    if (activeTab === 'feeds') {
-      // Force refresh of custom feeds data
-      useUnifiedStore.getState().loadCustomFeeds().catch(err => {
-        console.error('Error refreshing custom feeds:', err);
-      });
-    }
-  }, [activeTab]);
+  // Feed data is now loaded from global settings - no need to refresh when switching tabs
 
   // When globalSettings changes, normalize shape and stop loading
   useEffect(() => {
@@ -268,62 +301,82 @@ export default function SettingsPage() {
     toast.success('Settings reset to defaults successfully!');
   };
 
-  const handleFeedSave = async (feedData) => {
+  // Admin feed management functions
+  const handleAddFeed = async (feedData) => {
     try {
-      if (editingFeed) {
-        await updateCustomFeed(feedData.category, editingFeed.id, feedData);
-        toast.success('Feed updated successfully!');
-      } else {
-        await addCustomFeed(feedData.category, feedData);
-        toast.success('Feed added successfully!');
-      }
+      await addGlobalFeed(feedData.category, feedData);
+      setShowAddFeedForm(false);
+      toast.success('Feed added successfully!');
+    } catch (error) {
+      toast.error('Failed to add feed');
+    }
+  };
+
+  const handleEditFeed = async (feedData) => {
+    try {
+      await editGlobalFeed(editingFeed.category, editingFeed.id, feedData);
       setEditingFeed(null);
-      setShowFeedForm(false);
+      toast.success('Feed updated successfully!');
     } catch (error) {
-      console.error('Error saving feed:', error);
-      toast.error('Failed to save feed');
+      toast.error('Failed to update feed');
     }
   };
 
-  const handleLocalMixSave = async (mixData) => {
-    try {
-      if (editingLocalMix) {
-        await updateLocalMix(editingLocalMix.category, mixData);
-        toast.success('Local mix updated successfully!');
-      }
-      setEditingLocalMix(null);
-      setShowLocalMixForm(false);
-    } catch (error) {
-      toast.error('Failed to save local mix');
-    }
-  };
-
-  const handleFeedDelete = async (feedId) => {
-    try {
-      // Find which category the feed belongs to
-      let feedCategory = null;
-      for (const [category, categoryFeeds] of Object.entries(customFeeds)) {
-        if (categoryFeeds.find(feed => feed.id === feedId)) {
-          feedCategory = category;
-          break;
-        }
-      }
-      
-      if (feedCategory) {
-        await deleteCustomFeed(feedCategory, feedId);
+  const handleDeleteFeed = async (category, feedId) => {
+    if (confirm('Are you sure you want to delete this feed?')) {
+      try {
+        await deleteGlobalFeed(category, feedId);
         toast.success('Feed deleted successfully!');
-      } else {
-        toast.error('Feed not found');
+      } catch (error) {
+        toast.error('Failed to delete feed');
       }
-    } catch (error) {
-      console.error('Error deleting feed:', error);
-      toast.error('Failed to delete feed');
     }
   };
 
-  const handleResetFeeds = () => {
-    resetCustomFeeds();
-    toast.success('Feed data reset to defaults successfully!');
+  const handleAddMix = async (mixData) => {
+    try {
+      await addGlobalLocalMix(mixData.category, mixData);
+      setShowAddMixForm(false);
+      toast.success('Local mix added successfully!');
+    } catch (error) {
+      toast.error('Failed to add local mix');
+    }
+  };
+
+  const handleEditMix = async (mixData) => {
+    try {
+      await editGlobalLocalMix(editingMix.category, editingMix.id, mixData);
+      setEditingMix(null);
+      toast.success('Local mix updated successfully!');
+    } catch (error) {
+      toast.error('Failed to update local mix');
+    }
+  };
+
+  const handleDeleteMix = async (category, mixId) => {
+    if (confirm('Are you sure you want to delete this local mix?')) {
+      try {
+        await deleteGlobalLocalMix(category, mixId);
+        toast.success('Local mix deleted successfully!');
+      } catch (error) {
+        toast.error('Failed to delete local mix');
+      }
+    }
+  };
+
+  const handleRestoreFeeds = async () => {
+    if (confirm('This will restore all commercial feeds to their default state. Any custom feeds will be preserved. Continue?')) {
+      try {
+        setIsSaving(true);
+        await restoreCommercialFeeds();
+        toast.success('Commercial feeds restored successfully!');
+      } catch (error) {
+        console.error('Error restoring feeds:', error);
+        toast.error('Failed to restore commercial feeds');
+      } finally {
+        setIsSaving(false);
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -342,6 +395,15 @@ export default function SettingsPage() {
   const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
   const isEmailAdmin = user?.email ? ADMIN_EMAILS.includes(user.email.toLowerCase()) : false;
   const isAdmin = !!(userProfile?.is_admin || userProfile?.roles?.includes?.('admin') || isEmailAdmin);
+
+  // Show loading spinner while determining authentication state
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   // If not authenticated, show login form
   if (!isAuthenticated) {
@@ -367,8 +429,8 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
-    );
-  }
+  );
+}
 
   if (isLoading) {
     return (
@@ -433,15 +495,7 @@ export default function SettingsPage() {
                   </>
                 )}
                 
-                {activeTab === 'feeds' && (
-                  <button
-                    onClick={handleResetFeeds}
-                    className="flex items-center space-x-2 px-3 py-2 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors text-sm"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span className="hidden sm:inline">Reset Feeds</span>
-                  </button>
-                )}
+                {/* Reset feeds button removed - feeds are now managed globally */}
                 
                 <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-600"></div>
                 
@@ -1040,31 +1094,31 @@ export default function SettingsPage() {
                       Feed Management
                     </h2>
                     <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                      Manage commercial feeds and local mixes
+                      Manage global commercial feeds and local mixes
                     </p>
                   </div>
                   <div className="flex items-center space-x-3">
                     <button
-                      onClick={() => {
-                        setEditingLocalMix(null);
-                        setShowLocalMixForm(true);
-                      }}
-                      className="flex items-center space-x-2 px-4 py-2 bg-neutral-600 hover:bg-neutral-700 text-white rounded-lg transition-colors text-sm"
+                      onClick={handleRestoreFeeds}
+                      disabled={isSaving}
+                      className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white rounded-lg transition-colors text-sm font-medium"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span className="hidden sm:inline">Add Local Mix</span>
-                      <span className="sm:hidden">Mix</span>
+                      <RefreshCw className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
+                      <span>{isSaving ? 'Restoring...' : 'Restore Commercial Feeds'}</span>
                     </button>
                     <button
-                      onClick={() => {
-                        setEditingFeed(null);
-                        setShowFeedForm(true);
-                      }}
-                      className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm font-medium"
+                      onClick={() => setShowAddFeedForm(true)}
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                     >
                       <Plus className="w-4 h-4" />
-                      <span className="hidden sm:inline">Add Commercial Feed</span>
-                      <span className="sm:hidden">Feed</span>
+                      <span>Add Commercial Feed</span>
+                    </button>
+                    <button
+                      onClick={() => setShowAddMixForm(true)}
+                      className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Local Mix</span>
                     </button>
                   </div>
                 </div>
@@ -1076,18 +1130,18 @@ export default function SettingsPage() {
                   <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                   Commercial Feeds
                   <span className="ml-2 text-sm text-neutral-500 dark:text-neutral-400">
-                    ({Object.values(customFeeds).reduce((total, categoryFeeds) => total + categoryFeeds.length, 0)} total)
+                    ({Object.values(customFeeds || {}).reduce((total, categoryFeeds) => total + (Array.isArray(categoryFeeds) ? categoryFeeds.length : 0), 0)} total)
                   </span>
                 </h3>
                 
                 <div className="space-y-4">
-                  {Object.entries(customFeeds).map(([category, categoryFeeds]) => (
+                  {Object.entries(customFeeds || {}).map(([category, categoryFeeds]) => (
                     <div key={category}>
                       <h3 className="text-md font-medium text-neutral-800 dark:text-neutral-200 mb-3 capitalize">
-                        {category} Feeds ({categoryFeeds.length})
+                        {category} Feeds ({Array.isArray(categoryFeeds) ? categoryFeeds.length : 0})
                       </h3>
                       <div className="grid gap-3">
-                        {categoryFeeds.map((feed) => (
+                        {Array.isArray(categoryFeeds) && categoryFeeds.map((feed) => (
                           <div key={feed.id} className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-4 hover:border-primary-300 dark:hover:border-primary-600 transition-colors">
                             <div className="flex items-start justify-between">
                               <div className="flex-1 min-w-0">
@@ -1111,19 +1165,18 @@ export default function SettingsPage() {
                                   </p>
                                 )}
                               </div>
-                              <div className="flex items-center space-x-1 ml-4 flex-shrink-0">
+                              <div className="flex items-center space-x-2 ml-4">
                                 <button
-                                  onClick={() => {
-                                    setEditingFeed(feed);
-                                    setShowFeedForm(true);
-                                  }}
-                                  className="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                                  onClick={() => setEditingFeed({ ...feed, category })}
+                                  className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                  title="Edit feed"
                                 >
                                   <Edit className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handleFeedDelete(feed.id)}
-                                  className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                  onClick={() => handleDeleteFeed(category, feed.id)}
+                                  className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                  title="Delete feed"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -1143,46 +1196,59 @@ export default function SettingsPage() {
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
                   Local Feed Mixes
                   <span className="ml-2 text-sm text-neutral-500 dark:text-neutral-400">
-                    ({Object.keys(localMixes).length} total)
+                    ({Object.values(localMixes || {}).reduce((total, mixes) => total + (Array.isArray(mixes) ? mixes.length : 1), 0)} total)
                   </span>
                 </h3>
                 
                 <div className="space-y-4">
-                  {Object.entries(localMixes).map(([category, mix]) => (
-                    <div key={category} className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-4 hover:border-green-300 dark:hover:border-green-600 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h4 className="font-medium text-neutral-900 dark:text-neutral-100 capitalize truncate">{category} Mix</h4>
-                            <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full">
-                              Local
-                            </span>
+                  {Object.entries(localMixes || {}).flatMap(([category, mixes]) => {
+                    const mixArray = Array.isArray(mixes) ? mixes : [mixes];
+                    return mixArray.filter(Boolean).map((mix, index) => (
+                      <div key={`${category}-${mix.id || index}`} className="border border-neutral-200 dark:border-neutral-600 rounded-lg p-4 hover:border-green-300 dark:hover:border-green-600 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <h4 className="font-medium text-neutral-900 dark:text-neutral-100 capitalize truncate">
+                                {mix.name || `${category} Mix ${mixArray.length > 1 ? `#${index + 1}` : ''}`}
+                              </h4>
+                              <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full">
+                                Local
+                              </span>
+                              <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full capitalize">
+                                {category}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-neutral-600 dark:text-neutral-400 mb-2">
+                              <span className="truncate">{mix.name || 'Unnamed Mix'}</span>
+                              <span>Protein: {mix.protein || 0}%</span>
+                            </div>
+                            <p className="text-xs text-neutral-500 dark:text-neutral-500 line-clamp-2 mb-2">
+                              {mix.description || 'Local feed mix'}
+                            </p>
+                            <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+                              {mix.ingredients?.length || 0} ingredients
+                            </p>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-neutral-600 dark:text-neutral-400 mb-2">
-                            <span className="truncate">{mix.name}</span>
-                            <span>Protein: {mix.protein}%</span>
+                          <div className="flex items-center space-x-2 ml-4">
+                            <button
+                              onClick={() => setEditingMix({ ...mix, category, id: mix.id || category })}
+                              className="p-2 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                              title="Edit local mix"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteMix(category, mix.id || category)}
+                              className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                              title="Delete local mix"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-500 line-clamp-2 mb-2">
-                            {mix.description || 'Local feed mix'}
-                          </p>
-                          <p className="text-xs text-green-600 dark:text-green-400 font-medium">
-                            {mix.ingredients?.length || 0} ingredients
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-1 ml-4 flex-shrink-0">
-                          <button
-                            onClick={() => {
-                              setEditingLocalMix({ category, ...mix });
-                              setShowLocalMixForm(true);
-                            }}
-                            className="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ));
+                  })}
                 </div>
               </div>
             </div>
@@ -1191,6 +1257,7 @@ export default function SettingsPage() {
           {/* Waitlist Admin Tab */}
           {activeTab === 'admin' && (
             <div className="space-y-6">
+
               <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-5">
                 <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4 flex items-center">
                   <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
@@ -1203,30 +1270,29 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Feed Form Modal */}
+      {/* Feed Forms */}
       <FeedForm
-        isOpen={showFeedForm}
+        isOpen={showAddFeedForm || !!editingFeed}
         onClose={() => {
-          setShowFeedForm(false);
+          setShowAddFeedForm(false);
           setEditingFeed(null);
         }}
-        onSave={handleFeedSave}
+        onSave={editingFeed ? handleEditFeed : handleAddFeed}
         editingFeed={editingFeed}
-        categories={FEED_CATEGORIES}
-        packagingOptions={PACKAGING_OPTIONS}
-        availabilityRegions={AVAILABILITY_REGIONS}
-        feedTags={FEED_TAGS}
+        categories={['starter', 'grower', 'finisher', 'layer']}
+        packagingOptions={['25kg', '50kg']}
+        availabilityRegions={['Lagos', 'Abuja', 'Kano', 'Port Harcourt']}
+        feedTags={['organic', 'premium', 'budget']}
       />
 
-      {/* Local Mix Form Modal */}
       <LocalMixForm
-        isOpen={showLocalMixForm}
+        isOpen={showAddMixForm || !!editingMix}
         onClose={() => {
-          setShowLocalMixForm(false);
-          setEditingLocalMix(null);
+          setShowAddMixForm(false);
+          setEditingMix(null);
         }}
-        onSave={handleLocalMixSave}
-        editingLocalMix={editingLocalMix}
+        onSave={editingMix ? handleEditMix : handleAddMix}
+        editingLocalMix={editingMix}
       />
     </div>
   );
