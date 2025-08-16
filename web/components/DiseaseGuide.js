@@ -511,47 +511,51 @@ export default function DiseaseGuide() {
       {/* Emergency Tab */}
       {activeView === 'emergency' && (
         <div className="space-y-6">
-          {Object.entries(EMERGENCY_PROTOCOLS).map(([protocolName, protocol]) => (
-            <div key={protocolName} className="bg-white dark:bg-neutral-800 rounded-2xl shadow-soft border border-neutral-200 dark:border-neutral-700 p-6">
-              <div className="flex items-center mb-4">
-                <AlertTriangle className="w-6 h-6 text-red-500 mr-3" />
-                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                  {protocol.name}
-                </h3>
-              </div>
-              <p className="text-neutral-600 dark:text-neutral-300 mb-4">
-                {protocol.description}
-              </p>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                    Immediate Actions:
-                  </h4>
-                  <ul className="space-y-1">
-                    {protocol.immediateActions.map((action, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="text-red-500 mr-2">•</span>
-                        <span className="text-neutral-600 dark:text-neutral-300">{action}</span>
-                      </li>
-                    ))}
-                  </ul>
+          {Object.entries(EMERGENCY_PROTOCOLS).map(([protocolName, protocol]) => {
+            // Create display name from protocol key
+            const displayName = protocolName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            return (
+              <div key={protocolName} className="bg-white dark:bg-neutral-800 rounded-2xl shadow-soft border border-neutral-200 dark:border-neutral-700 p-6">
+                <div className="flex items-center mb-4">
+                  <AlertTriangle className="w-6 h-6 text-red-500 mr-3" />
+                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                    {displayName}
+                  </h3>
                 </div>
-                <div>
-                  <h4 className="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                    Follow-up Actions:
-                  </h4>
-                  <ul className="space-y-1">
-                    {protocol.followUpActions.map((action, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="text-blue-500 mr-2">•</span>
-                        <span className="text-neutral-600 dark:text-neutral-300">{action}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <p className="text-neutral-600 dark:text-neutral-300 mb-4">
+                  <strong>Threshold:</strong> {protocol.threshold}
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
+                      Immediate Actions:
+                    </h4>
+                    <ul className="space-y-1">
+                      {protocol.immediate_actions.map((action, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="text-red-500 mr-2">•</span>
+                          <span className="text-neutral-600 dark:text-neutral-300">{action}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {protocol.notification_required && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                      <h4 className="font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+                        Notification Required:
+                      </h4>
+                      <p className="text-yellow-700 dark:text-yellow-300 text-sm">
+                        {typeof protocol.notification_required === 'string' 
+                          ? protocol.notification_required 
+                          : 'Contact veterinary authorities immediately'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
