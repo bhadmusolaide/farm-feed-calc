@@ -161,3 +161,5 @@ web/*.json
 
 # Firebase admin service accounts
 omzo-feed-calc-firebase-adminsdk-*.json
+
+.vercel

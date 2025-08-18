@@ -791,7 +791,7 @@ export const useUnifiedStore = create(
         getSiteTitle: () => {
           const state = get();
           const defaultSettings = {
-            siteTitle: 'FeedMate by Omzo Farmz'
+            siteTitle: 'FeedMate'
           };
           return (state.globalSettings || defaultSettings).siteTitle;
         },
@@ -799,7 +799,7 @@ export const useUnifiedStore = create(
         getSiteDescription: () => {
           const state = get();
           const defaultSettings = {
-            siteDescription: 'For Nigerian Farmers'
+            siteDescription: 'Feed Calculator by Omzo Farmz'
           };
           return (state.globalSettings || defaultSettings).siteDescription;
         },
@@ -927,8 +927,8 @@ export const useUnifiedStore = create(
               } else {
                 // Document doesn't exist, use defaults
                 const defaultSettings = {
-                  siteTitle: 'FeedMate by Omzo Farmz',
-                  siteDescription: 'For Nigerian Farmers',
+                  siteTitle: 'FeedMate',
+                  siteDescription: 'Feed Calculator by Omzo Farmz',
                   logoUrl: '',
                   footer: {
                     logoUrl: '',
@@ -993,8 +993,8 @@ export const useUnifiedStore = create(
                 console.error('Failed to fetch global settings from API:', apiError);
                 // Final fallback to default settings
                 const defaultSettings = {
-                  siteTitle: 'FeedMate by Omzo Farmz',
-                  siteDescription: 'For Nigerian Farmers',
+                  siteTitle: 'FeedMate',
+                  siteDescription: 'Feed Calculator by Omzo Farmz',
                   logoUrl: '',
                   footer: {
                     logoUrl: '',
