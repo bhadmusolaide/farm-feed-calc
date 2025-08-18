@@ -654,29 +654,29 @@ export const useUnifiedStore = create(
           }
         },
         
-        // Settings management
-        updateSettings: async (newSettings) => {
-          try {
-            const strategy = get()._getPersistenceStrategy();
-            const settings = { ...get().userSettings, ...newSettings };
-            await strategy.save('settings', settings);
-            set({ userSettings: settings });
-          } catch (error) {
-            console.error('Error updating settings:', error);
-            throw error;
-          }
-        },
+        // Settings management (DEPRECATED - use global updateSettings function instead)
+        // updateSettings: async (newSettings) => {
+        //   try {
+        //     const strategy = get()._getPersistenceStrategy();
+        //     const settings = { ...get().userSettings, ...newSettings };
+        //     await strategy.save('settings', settings);
+        //     set({ userSettings: settings });
+        //   } catch (error) {
+        //     console.error('Error updating settings:', error);
+        //     throw error;
+        //   }
+        // },
         
-        loadSettings: async () => {
-          try {
-            const strategy = get()._getPersistenceStrategy();
-            const settingsList = await strategy.list('settings');
-            const settings = settingsList[0] || {};
-            set({ userSettings: settings });
-          } catch (error) {
-            console.error('Error loading settings:', error);
-          }
-        },
+        // loadSettings: async () => {
+        //   try {
+        //     const strategy = get()._getPersistenceStrategy();
+        //     const settingsList = await strategy.list('settings');
+        //     const settings = settingsList[0] || {};
+        //     set({ userSettings: settings });
+        //   } catch (error) {
+        //     console.error('Error loading settings:', error);
+        //   }
+        // },
         
         // Migration and sync utilities
         migrateToDatabase: async () => {
@@ -717,7 +717,7 @@ export const useUnifiedStore = create(
             // Reload data from database
             await get().loadSavedResults();
             await get().loadFavorites();
-            await get().loadSettings();
+            // loadSettings is deprecated, settings are now managed globally
             
             set({ isSyncing: false });
             
@@ -739,12 +739,12 @@ export const useUnifiedStore = create(
               // Load data from database
               await get().loadSavedResults();
               await get().loadFavorites();
-              await get().loadSettings();
+              // loadSettings is deprecated, use loadGlobalSettings instead
             } else {
               // Load data from local storage
               await get().loadSavedResults();
               await get().loadFavorites();
-              await get().loadSettings();
+              // loadSettings is deprecated, use loadGlobalSettings instead
             }
           } catch (error) {
             console.error('Error handling auth state change:', error);
@@ -756,7 +756,7 @@ export const useUnifiedStore = create(
           try {
             await get().loadSavedResults();
             await get().loadFavorites();
-            await get().loadSettings();
+            // loadSettings is deprecated, use loadGlobalSettings instead
           } catch (error) {
             console.error('Error initializing store:', error);
           }
@@ -904,194 +904,149 @@ export const useUnifiedStore = create(
           return (state.globalSettings || defaultSettings).heroVideo.title;
         },
 
-        // Global settings management (fetch from Firestore)
+        // Global settings management (try Firebase first, then API as fallback)
         loadGlobalSettings: async () => {
           try {
             // indicate loading state for settings
             set({ isLoadingGlobal: true, error: null });
             
-            // Check if user is authenticated before attempting Firebase access
-            const { auth } = await import('./firebase');
-            const currentUser = auth.currentUser;
-            
-            if (!currentUser) {
-              // User not authenticated, use default settings
-              const defaultSettings = {
-                siteTitle: 'FeedMate by Omzo Farmz',
-                siteDescription: 'For Nigerian Farmers',
-                logoUrl: '',
-                footer: {
+            // First, try to fetch directly from Firebase (should work for all users now)
+            try {
+              const { doc, getDoc } = await import('firebase/firestore');
+              const { db } = await import('./firebase');
+              const settingsDocRef = doc(db, 'global_settings', 'site');
+              
+              const snap = await getDoc(settingsDocRef);
+              
+              if (snap.exists()) {
+                const data = snap.data();
+                set({ globalSettings: data, isLoadingGlobal: false, error: null });
+                // Populate feed data from global settings
+                get().populateFeedDataFromGlobal(data);
+                return data;
+              } else {
+                // Document doesn't exist, use defaults
+                const defaultSettings = {
+                  siteTitle: 'FeedMate by Omzo Farmz',
+                  siteDescription: 'For Nigerian Farmers',
                   logoUrl: '',
-                  description: 'Helping Nigerian and African farmers optimize their poultry feeding with accurate calculations and local expertise.',
-                  features: [
-                    'Feed requirement calculator',
-                    'Local feed brand recommendations',
-                    'Weekly best practices',
-                    'Offline support'
-                  ],
-                  support: [
-                    'Works on all devices',
-                    'Optimized for low-end phones',
-                    'Nigerian feed brands included',
-                    'Regular updates'
-                  ],
-                  copyright: '© 2025 Poultry Feed Calculator by Omzo Farmz. Built for African farmers with ❤️'
-                },
-                recommendedFeeds: {
-                  title: 'Recommended Feeds',
-                  description: 'Browse our curated selection of quality feed brands'
-                },
-                heroVideo: {
-                  enabled: false,
-                  url: '',
-                  title: 'Watch Our Demo'
-                },
-                feedResultsVisibility: {
-                  showFeedQuantity: true,
-                  showFeedingSchedule: true,
-                  showWeeklySummary: true,
-                  showProgressionTracker: true,
-                  showFCRReference: true,
-                  showOptimizationInsights: true,
-                  showBestPractices: true
-                },
-                // Global feed data - moved from local storage to global settings
-                globalFeeds: FEED_BRANDS,
-                globalLocalMixes: LOCAL_FEED_MIXES,
-                logoVersion: Date.now()
-              };
-              set({ globalSettings: defaultSettings, isLoadingGlobal: false, error: null });
-              // Populate feed data from global settings
-              get().populateFeedDataFromGlobal(defaultSettings);
-              return defaultSettings;
+                  footer: {
+                    logoUrl: '',
+                    description: 'Helping Nigerian and African farmers optimize their poultry feeding with accurate calculations and local expertise.',
+                    features: [
+                      'Feed requirement calculator',
+                      'Local feed brand recommendations',
+                      'Weekly best practices',
+                      'Offline support'
+                    ],
+                    support: [
+                      'Works on all devices',
+                      'Optimized for low-end phones',
+                      'Nigerian feed brands included',
+                      'Regular updates'
+                    ],
+                    copyright: '© 2025 Poultry Feed Calculator by Omzo Farmz. Built for African farmers with ❤️'
+                  },
+                  recommendedFeeds: {
+                    title: 'Recommended Feeds',
+                    description: 'Browse our curated selection of quality feed brands'
+                  },
+                  heroVideo: {
+                    enabled: false,
+                    url: '',
+                    title: 'Watch Our Demo'
+                  },
+                  feedResultsVisibility: {
+                    showFeedQuantity: true,
+                    showFeedingSchedule: true,
+                    showWeeklySummary: true,
+                    showProgressionTracker: true,
+                    showFCRReference: true,
+                    showOptimizationInsights: true,
+                    showBestPractices: true
+                  },
+                  // Global feed data - moved from local storage to global settings
+                  globalFeeds: FEED_BRANDS,
+                  globalLocalMixes: LOCAL_FEED_MIXES,
+                  logoVersion: Date.now()
+                };
+                set({ globalSettings: defaultSettings, isLoadingGlobal: false, error: null });
+                // Populate feed data from global settings
+                get().populateFeedDataFromGlobal(defaultSettings);
+                return defaultSettings;
+              }
+            } catch (firebaseError) {
+              console.error('Failed to fetch global settings from Firebase directly:', firebaseError);
+              // Fallback to API
+              try {
+                const response = await fetch('/api/global-settings');
+                if (response.ok) {
+                  const data = await response.json();
+                  set({ globalSettings: data, isLoadingGlobal: false, error: null });
+                  // Populate feed data from global settings
+                  get().populateFeedDataFromGlobal(data);
+                  return data;
+                } else {
+                  throw new Error(`API request failed with status ${response.status}`);
+                }
+              } catch (apiError) {
+                console.error('Failed to fetch global settings from API:', apiError);
+                // Final fallback to default settings
+                const defaultSettings = {
+                  siteTitle: 'FeedMate by Omzo Farmz',
+                  siteDescription: 'For Nigerian Farmers',
+                  logoUrl: '',
+                  footer: {
+                    logoUrl: '',
+                    description: 'Helping Nigerian and African farmers optimize their poultry feeding with accurate calculations and local expertise.',
+                    features: [
+                      'Feed requirement calculator',
+                      'Local feed brand recommendations',
+                      'Weekly best practices',
+                      'Offline support'
+                    ],
+                    support: [
+                      'Works on all devices',
+                      'Optimized for low-end phones',
+                      'Nigerian feed brands included',
+                      'Regular updates'
+                    ],
+                    copyright: '© 2025 Poultry Feed Calculator by Omzo Farmz. Built for African farmers with ❤️'
+                  },
+                  recommendedFeeds: {
+                    title: 'Recommended Feeds',
+                    description: 'Browse our curated selection of quality feed brands'
+                  },
+                  heroVideo: {
+                    enabled: false,
+                    url: '',
+                    title: 'Watch Our Demo'
+                  },
+                  feedResultsVisibility: {
+                    showFeedQuantity: true,
+                    showFeedingSchedule: true,
+                    showWeeklySummary: true,
+                    showProgressionTracker: true,
+                    showFCRReference: true,
+                    showOptimizationInsights: true,
+                    showBestPractices: true
+                  },
+                  // Global feed data - moved from local storage to global settings
+                  globalFeeds: FEED_BRANDS,
+                  globalLocalMixes: LOCAL_FEED_MIXES,
+                  logoVersion: Date.now()
+                };
+                set({ globalSettings: defaultSettings, isLoadingGlobal: false, error: null });
+                // Populate feed data from global settings
+                get().populateFeedDataFromGlobal(defaultSettings);
+                return defaultSettings;
+              }
             }
-            
-            // Lazy import to avoid SSR issues
-            const { doc, getDoc, setDoc } = await import('firebase/firestore');
-            const { db } = await import('./firebase');
-            const settingsDocRef = doc(db, 'global_settings', 'site');
-
-            // Attempt to read settings
-            const snap = await getDoc(settingsDocRef);
-
-            if (snap.exists()) {
-              const data = snap.data();
-              set({ globalSettings: data, isLoadingGlobal: false, error: null });
-              // Populate feed data from global settings
-              get().populateFeedDataFromGlobal(data);
-              return data;
-            }
-
-            // If not found, seed defaults (first-time bootstrap)
-            const defaultSettings = {
-              siteTitle: 'FeedMate by Omzo Farmz',
-              siteDescription: 'For Nigerian Farmers',
-              logoUrl: '',
-              footer: {
-                logoUrl: '',
-                description: 'Helping Nigerian and African farmers optimize their poultry feeding with accurate calculations and local expertise.',
-                features: [
-                  'Feed requirement calculator',
-                  'Local feed brand recommendations',
-                  'Weekly best practices',
-                  'Offline support'
-                ],
-                support: [
-                  'Works on all devices',
-                  'Optimized for low-end phones',
-                  'Nigerian feed brands included',
-                  'Regular updates'
-                ],
-                copyright: '© 2025 Poultry Feed Calculator by Omzo Farmz. Built for African farmers with ❤️'
-              },
-              recommendedFeeds: {
-                title: 'Recommended Feeds',
-                description: 'Browse our curated selection of quality feed brands'
-              },
-              heroVideo: {
-                enabled: false,
-                url: '',
-                title: 'Watch Our Demo'
-              },
-              // New global visibility toggles for Feed Results sections (default all true)
-              feedResultsVisibility: {
-                showFeedQuantity: true,
-                showFeedingSchedule: true,
-                showWeeklySummary: true,
-                showProgressionTracker: true,
-                showFCRReference: true,
-                // New standalone flags
-                showOptimizationInsights: true,
-                showBestPractices: true
-              },
-              // Global feed data - moved from local storage to global settings
-              globalFeeds: FEED_BRANDS,
-              globalLocalMixes: LOCAL_FEED_MIXES,
-              logoVersion: Date.now()
-            };
-
-            // Seed Firestore then update state
-            await setDoc(settingsDocRef, defaultSettings, { merge: true });
-            set({ globalSettings: defaultSettings, isLoadingGlobal: false, error: null });
-            // Populate feed data from global settings
-            get().populateFeedDataFromGlobal(defaultSettings);
-            return defaultSettings;
           } catch (error) {
-            // Check if this is a permission error for unauthenticated users
-            const isPermissionError = error?.code === 'permission-denied' || 
-                                    error?.message?.includes('Missing or insufficient permissions');
-            
-            if (isPermissionError) {
-              // Use default settings for permission errors (likely unauthenticated)
-              const defaultSettings = {
-                siteTitle: 'FeedMate by Omzo Farmz',
-                siteDescription: 'For Nigerian Farmers',
-                logoUrl: '',
-                footer: {
-                  logoUrl: '',
-                  description: 'Helping Nigerian and African farmers optimize their poultry feeding with accurate calculations and local expertise.',
-                  features: [
-                    'Feed requirement calculator',
-                    'Local feed brand recommendations',
-                    'Weekly best practices',
-                    'Offline support'
-                  ],
-                  support: [
-                    'Works on all devices',
-                    'Optimized for low-end phones',
-                    'Nigerian feed brands included',
-                    'Regular updates'
-                  ],
-                  copyright: '© 2025 Poultry Feed Calculator by Omzo Farmz. Built for African farmers with ❤️'
-                },
-                recommendedFeeds: {
-                  title: 'Recommended Feeds',
-                  description: 'Browse our curated selection of quality feed brands'
-                },
-                heroVideo: {
-                  enabled: false,
-                  url: '',
-                  title: 'Watch Our Demo'
-                },
-                feedResultsVisibility: {
-                  showFeedQuantity: true,
-                  showFeedingSchedule: true,
-                  showWeeklySummary: true,
-                  showProgressionTracker: true,
-                  showFCRReference: true,
-                  showOptimizationInsights: true,
-                  showBestPractices: true
-                },
-                logoVersion: Date.now()
-              };
-              set({ globalSettings: defaultSettings, isLoadingGlobal: false, error: null });
-              return defaultSettings;
-            } else {
-              // Log actual errors that aren't permission-related
-              console.error('Error loading global settings:', error);
-              set({ isLoadingGlobal: false, error: error?.message || 'Failed to load settings' });
-              return null;
-            }
+            // Log actual errors
+            console.error('Error loading global settings:', error);
+            set({ isLoadingGlobal: false, error: error?.message || 'Failed to load settings' });
+            return null;
           }
         },
 

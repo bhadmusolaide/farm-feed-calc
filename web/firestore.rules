@@ -47,10 +47,10 @@ service cloud.firestore {
     }
 
     // Global settings
-    // - Read: allow all authenticated users to read global settings
+    // - Read: allow public read access for global settings
     // - Write: restrict to admins only (custom claim or allowlisted email)
     match /global_settings/{document} {
-      allow read: if request.auth != null;
+      allow read: if true;  // Public read access
       allow write: if isAdmin();
     }
   }
