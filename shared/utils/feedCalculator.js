@@ -574,27 +574,22 @@ export function calculateFeed(params) {
 export function generateFeedingSchedule(ageInDays, birdType, totalDailyFeedCups, targetWeight = 'medium') {
   let mealsPerDay, times, feedingType;
   
-  // Commercial-optimized feeding frequency based on research best practices
+  // Commercial-optimized feeding frequency - consistent 4 meals for all ages
   if (ageInDays <= 14) {
     // Chicks (0-2 weeks): Ad-libitum feeding recommended
     feedingType = 'ad-libitum';
     mealsPerDay = 'continuous';
     times = ['Continuous access - refill as needed'];
-  } else if (ageInDays <= 28) {
-    // Young birds (3-4 weeks): 4 meals per day
-    feedingType = 'scheduled';
-    mealsPerDay = 4;
-    times = ['6:00 AM', '11:00 AM', '2:00 PM', '6:00 PM'];
-  } else if (ageInDays <= 42) {
-    // Grower phase (5-6 weeks): 4 meals per day
+  } else if (ageInDays <= 56) {
+    // All birds from 3-8 weeks: 4 meals per day consistently
     feedingType = 'scheduled';
     mealsPerDay = 4;
     times = ['6:00 AM', '11:00 AM', '2:00 PM', '6:00 PM'];
   } else {
-    // Finisher phase (7+ weeks): 3 meals per day
-    feedingType = 'scheduled';
-    mealsPerDay = 3;
-    times = ['6:00 AM', '12:00 PM', '6:00 PM'];
+    // Birds beyond 8 weeks (56 days): Out of recommended feeding age
+    feedingType = 'out-of-age';
+    mealsPerDay = 0;
+    times = [];
   }
   
   // For ad-libitum feeding, return special schedule
@@ -619,6 +614,26 @@ export function generateFeedingSchedule(ageInDays, birdType, totalDailyFeedCups,
         'Monitor daily feed consumption closely',
         'Provide 23-24 hours of light to encourage frequent feeding',
         'Check feeders every 2-3 hours during active periods'
+      ]
+    };
+  }
+  
+  // For out-of-age birds
+  if (feedingType === 'out-of-age') {
+    return {
+      mealsPerDay: 0,
+      feedingType: 'out-of-age',
+      feedPerMeal: 0,
+      feedPerMealGrams: 0,
+      times: [],
+      totalDailyFeedCups: 0,
+      totalDailyFeedGrams: 0,
+      schedule: [],
+      message: 'Birds beyond 8 weeks (56 days) are out of the recommended feeding age for this calculator. Please consult with a poultry specialist for continued feeding management.',
+      recommendations: [
+        'Birds beyond 8 weeks may be ready for market or require specialized feeding',
+        'Consult with a poultry nutritionist for continued feeding programs',
+        'Consider transitioning to maintenance or breeding feeds if applicable'
       ]
     };
   }

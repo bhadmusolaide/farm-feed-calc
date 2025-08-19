@@ -1,7 +1,7 @@
 'use client';
 
 import { useUnifiedStore } from '../lib/unifiedStore';
-import { Package, Clock, Lightbulb, Calculator, Copy, Check, Save, Thermometer, Calendar, Zap, ChevronRight } from 'lucide-react';
+import { Package, Clock, Lightbulb, Calculator, Copy, Check, Save, Thermometer, Calendar, Zap, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { clsx } from 'clsx';
 import { useToast } from './Toast';
@@ -350,46 +350,97 @@ Total Daily Feed: ${feedResults.total.cups} cups (${feedResults.total.grams}g)`;
               </button>
             </div>
             
-            <div className="space-y-3">
-              <div className="text-center p-3 bg-secondary-50 dark:bg-secondary-900/20 rounded-xl">
-                <div className="text-sm text-secondary-700 dark:text-secondary-300">Meals per Day</div>
-                <div className="text-2xl font-bold text-secondary-900 dark:text-secondary-100">
-                  {feedingSchedule.mealsPerDay}
+            {feedingSchedule.feedingType === 'out-of-age' ? (
+              <div className="text-center p-6 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                <div className="flex justify-center mb-3">
+                  <AlertTriangle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
                 </div>
-                <div className="text-sm text-secondary-600 dark:text-secondary-300">
-                  {feedingSchedule.feedPerMealGrams}g per meal
-                </div>
-                <div className="text-xs text-secondary-500 dark:text-secondary-400">
-                  ({feedingSchedule.feedPerMeal} cups)
+                <h4 className="text-lg font-semibold text-amber-800 dark:text-amber-200 mb-2">
+                  Birds Beyond Recommended Age
+                </h4>
+                <p className="text-amber-700 dark:text-amber-300 mb-4">
+                  {feedingSchedule.message}
+                </p>
+                <div className="text-left bg-amber-100 dark:bg-amber-900/30 p-4 rounded-lg">
+                  <h5 className="font-medium text-amber-800 dark:text-amber-200 mb-2">Recommendations:</h5>
+                  <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
+                    {feedingSchedule.recommendations.map((rec, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-2">•</span>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                {feedingSchedule.schedule.map((meal, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg"
-                  >
-                    <div>
-                      <div className="font-medium text-neutral-900 dark:text-neutral-100">
-                        {meal.time}
+            ) : (
+              <div className="space-y-3">
+                <div className="text-center p-3 bg-secondary-50 dark:bg-secondary-900/20 rounded-xl">
+                  <div className="text-sm text-secondary-700 dark:text-secondary-300">Meals per Day</div>
+                  <div className="text-2xl font-bold text-secondary-900 dark:text-secondary-100">
+                    {feedingSchedule.mealsPerDay}
+                  </div>
+                  {feedingSchedule.feedingType !== 'ad-libitum' && (
+                    <>
+                      <div className="text-sm text-secondary-600 dark:text-secondary-300">
+                        {feedingSchedule.feedPerMealGrams}g per meal
                       </div>
-                      <div className="text-sm text-neutral-600 dark:text-neutral-300">
-                        Meal {meal.meal}
+                      <div className="text-xs text-secondary-500 dark:text-secondary-400">
+                        ({feedingSchedule.feedPerMeal} cups)
                       </div>
+                    </>
+                  )}
+                </div>
+                
+                {feedingSchedule.feedingType === 'ad-libitum' ? (
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="text-blue-800 dark:text-blue-200 font-medium mb-2">
+                      Ad-Libitum Feeding
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-neutral-900 dark:text-neutral-100">
-                        {meal.feedGrams}g
-                      </div>
-                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                        ({meal.feedCups} cups)
-                      </div>
+                    <p className="text-blue-700 dark:text-blue-300 text-sm">
+                      {feedingSchedule.schedule[0]?.note}
+                    </p>
+                    <div className="mt-3 text-xs text-blue-600 dark:text-blue-400">
+                      <div className="font-medium mb-1">Recommendations:</div>
+                      <ul className="space-y-1">
+                        {feedingSchedule.recommendations.map((rec, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="mr-2">•</span>
+                            <span>{rec}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
-                ))}
+                ) : (
+                  <div className="space-y-2">
+                    {feedingSchedule.schedule.map((meal, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg"
+                      >
+                        <div>
+                          <div className="font-medium text-neutral-900 dark:text-neutral-100">
+                            {meal.time}
+                          </div>
+                          <div className="text-sm text-neutral-600 dark:text-neutral-300">
+                            Meal {meal.meal}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-neutral-900 dark:text-neutral-100">
+                            {meal.feedGrams}g
+                          </div>
+                          <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                            ({meal.feedCups} cups)
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
