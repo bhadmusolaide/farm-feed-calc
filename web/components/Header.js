@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Menu, X, Info, FileText } from 'lucide-react';
+import { Menu, X, Info, FileText, Package } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUnifiedStore } from '../lib/unifiedStore';
 import ThemeToggle from './ThemeToggle';
@@ -88,6 +88,14 @@ export default function Header() {
                 <FileText className="w-4 h-4 mr-2" />
                 Disclaimer
               </a>
+              <a
+                href="/poultry-products"
+                className="btn-ghost btn-sm interactive-scale glow-on-hover"
+                title="Poultry Products"
+              >
+                <Package className="w-4 h-4 mr-2" />
+                Poultry Products
+              </a>
               <UserProfile />
             </div>
 
@@ -138,6 +146,14 @@ export default function Header() {
                 >
                   <FileText className="w-4 h-4 mr-3" />
                   Disclaimer
+                </a>
+                <a
+                  href="/poultry-products"
+                  className="w-full btn-ghost justify-start interactive-scale"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  <Package className="w-4 h-4 mr-3" />
+                  Poultry Products
                 </a>
               </div>
             </div>

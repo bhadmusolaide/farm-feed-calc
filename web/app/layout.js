@@ -48,10 +48,16 @@ export const metadata = {
   metadataBase: new URL('https://poultry-feed-calculator.vercel.app'),
   alternates: {
     canonical: '/',
+    languages: {
+      'en-US': '/en-US',
+    },
+  },
+  alternates: {
+    canonical: '/',
   },
   openGraph: {
-    title: 'Poultry Feed Calculator - Nigerian Farmers',
-    description: 'Calculate optimal feed requirements for broilers and layers. Designed for Nigerian and African farmers.',
+    title: 'Poultry Feed Calculator & Fresh Products - Omzo Farmz',
+    description: 'Calculate optimal feed requirements for broilers and layers. Fresh poultry products including broilers, necks, legs, and dog food. Designed for Nigerian and African farmers.',
     url: 'https://poultry-feed-calculator.vercel.app',
     siteName: 'Poultry Feed Calculator by Omzo Farmz',
     images: [

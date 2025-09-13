@@ -58,11 +58,27 @@ A comprehensive cross-platform application designed to help poultry farmers opti
 - **Growth Tracking**: Monitor feed requirements as birds grow
 - **Cost Optimization**: Compare different feeding strategies
 
+### 🐔 Fresh Poultry Products
+- **Premium Quality**: Live broilers, dressed chicken, necks, legs, and pet food from our farm
+- **Precision Fed**: Raised using our own feed calculator for optimal nutrition
+- **Direct Sales**: Fresh products delivered from farm to table
+- **Complete Solution**: From feed calculations to finished poultry products
+- **Featured Products**: Highlighted premium offerings with special tags
+- **Product Gallery**: Complete range of poultry products in an interactive grid
+- **Customer Testimonials**: Auto-rotating carousel with real customer feedback
+
 ### 🛒 Feed Recommendations
 - **Commercial Feeds**: Curated database of Nigerian and African feed brands
 - **Local Mix Recipes**: Cost-effective homemade feed formulations
 - **Price Comparisons**: Real-time pricing information and cost analysis
 - **Nutritional Information**: Detailed protein, calcium, and energy content
+
+### 🐔 Poultry Products
+- **Live Broilers**: Premium quality live broiler chickens raised with precision feeding
+- **Dressed Chicken**: Professionally processed and frozen chickens for retailers and consumers
+- **Chicken Parts**: Necks, legs, and other cuts for family meals
+- **Pet Food**: Nutritious dog food made from chicken by-products
+- **Direct from Farm**: Fresh products delivered to your doorstep
 
 ### 📚 Knowledge Center
 - **Weekly Tips**: 52 weeks of expert poultry management advice
@@ -136,20 +152,23 @@ A comprehensive cross-platform application designed to help poultry farmers opti
 
 ```
 chicken-feed-calculator/
-├── web/                    # Next.js web application
-│   ├── app/               # App router pages
-│   ├── components/        # React components
-│   ├── lib/              # Utilities and stores
+├── web/                           # Next.js web application
+│   ├── app/                      # App router pages
+│   │   ├── api/                  # API routes
+│   │   ├── poultry-products/     # Poultry products page
+│   │   └── ...                   # Other pages
+│   ├── components/               # React components
+│   ├── lib/                     # Utilities and stores
 │   └── package.json
-├── mobile/                # React Native mobile app
-│   ├── app/              # Expo router pages
-│   ├── components/       # React Native components
-│   ├── lib/             # Utilities and stores
+├── mobile/                       # React Native mobile app
+│   ├── app/                     # Expo router pages
+│   ├── components/              # React Native components
+│   ├── lib/                    # Utilities and stores
 │   └── package.json
-├── shared/               # Shared business logic
-│   ├── data/            # Feed brands and knowledge data
-│   └── utils/           # Calculation algorithms
-└── package.json         # Root package configuration
+├── shared/                      # Shared business logic
+│   ├── data/                   # Feed brands and knowledge data
+│   └── utils/                  # Calculation algorithms
+└── package.json                # Root package configuration
 ```
 
 ## 🛠️ Development
