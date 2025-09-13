@@ -74,7 +74,7 @@ export default function About() {
               <Ionicons name="nutrition" size={40} color="#2563eb" />
             </View>
             <Text className="text-mobile-2xl font-bold text-neutral-900 mb-2">
-              Chicken Feed Calculator
+              FeedMate by Omzo Farmz
             </Text>
             <Text className="text-mobile-base text-neutral-600 mb-4">
               Smart poultry feed management for African farmers
@@ -202,29 +202,29 @@ export default function About() {
             <ContactCard
               icon="mail"
               title="Email Support"
-              subtitle="support@chickenfeedcalc.com"
-              onPress={() => handleOpenLink('mailto:support@chickenfeedcalc.com')}
+              subtitle="support@omzofarmz.com"
+              onPress={() => handleOpenLink('mailto:support@omzofarmz.com')}
             />
             
             <ContactCard
-              icon="logo-github"
-              title="GitHub Repository"
-              subtitle="View source code and contribute"
-              onPress={() => handleOpenLink('https://github.com/chickenfeedcalc/app')}
+              icon="call"
+              title="Phone Support"
+              subtitle="+234 8068530494"
+              onPress={() => handleOpenLink('tel:+2348068530494')}
             />
             
             <ContactCard
-              icon="globe"
-              title="Website"
-              subtitle="www.chickenfeedcalc.com"
-              onPress={() => handleOpenLink('https://www.chickenfeedcalc.com')}
+              icon="location"
+              title="Visit Us"
+              subtitle="Ibadan, Oyo State, Nigeria"
+              onPress={() => handleOpenLink('https://maps.google.com/?q=Ibadan,Nigeria')}
             />
             
             <ContactCard
-              icon="logo-twitter"
-              title="Follow Us"
-              subtitle="@ChickenFeedCalc"
-              onPress={() => handleOpenLink('https://twitter.com/ChickenFeedCalc')}
+              icon="mail"
+              title="Orders"
+              subtitle="orders@omzofarmz.com"
+              onPress={() => handleOpenLink('mailto:orders@omzofarmz.com')}
             />
           </View>
 
@@ -274,7 +274,7 @@ export default function About() {
                 Empowering agriculture through technology
               </Text>
               <Text className="text-mobile-xs text-neutral-500">
-                © 2024 Chicken Feed Calculator. All rights reserved.
+                © 2025 FeedMate by Omzo Farmz. All rights reserved.
               </Text>
             </View>
           </View>

@@ -18,6 +18,7 @@ export default function RootLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="about" />
             <Stack.Screen name="disclaimer" />
+            <Stack.Screen name="poultry-products" />
           </Stack>
           <OfflineIndicator />
           <StatusBar style="auto" />

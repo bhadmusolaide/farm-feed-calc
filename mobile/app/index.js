@@ -109,6 +109,13 @@ export default function HomePage() {
           
           <View className="flex-row items-center space-x-2">
             <TouchableOpacity
+              onPress={() => router.push('/poultry-products')}
+              className="p-2 rounded-lg bg-primary-100"
+            >
+              <Ionicons name="storefront-outline" size={20} color="#0284c7" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
               onPress={handleReset}
               className="p-2 rounded-lg bg-neutral-100"
             >
