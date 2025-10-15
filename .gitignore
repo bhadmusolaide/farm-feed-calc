@@ -176,6 +176,7 @@ android/local.properties
 
 # Watchman
 .watchmanconfig
+# Byterover rules
 .clinerules/byterover-rules.md
 .kilocode/rules/byterover-rules.md
 .roo/rules/byterover-rules.md
@@ -185,6 +186,12 @@ android/local.properties
 .qoder/rules/byterover-rules.md
 .augment/rules/byterover-rules.md
 
-# Markdown files (except README)
+# Ignore all .md files except README.md
 *.md
 !README.md
+.trae/rules/project_rules.md
+AUTHENTICATION_SECURITY.md
+DEPLOYMENT.md
+FIREBASE_TROUBLESHOOTING.md
+PRODUCTION_DEPLOYMENT.md
+PRODUCTION_READY.md
