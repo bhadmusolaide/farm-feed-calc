@@ -69,9 +69,14 @@ export default function Header() {
                 className="btn-ghost btn-sm interactive-scale glow-on-hover"
                 title="App Information"
               >
-                <Info className="w-4 h-4 mr-2" />
-                About
-              </button>
+                <a
+                href="/poultry-products"
+                className="btn-ghost btn-sm interactive-scale glow-on-hover"
+                title="Poultry Products"
+              >
+                <Package className="w-4 h-4 mr-2" />
+                Poultry Products
+              </a>
               <a
                 href="/breed-comparison"
                 className="btn-ghost btn-sm interactive-scale glow-on-hover"
@@ -80,6 +85,9 @@ export default function Header() {
                 <FileText className="w-4 h-4 mr-2" />
                 Breed Comparison
               </a>
+                <Info className="w-4 h-4 mr-2" />
+                About
+              </button>
               <a
                 href="/disclaimer"
                 className="btn-ghost btn-sm interactive-scale glow-on-hover"
@@ -87,14 +95,6 @@ export default function Header() {
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Disclaimer
-              </a>
-              <a
-                href="/poultry-products"
-                className="btn-ghost btn-sm interactive-scale glow-on-hover"
-                title="Poultry Products"
-              >
-                <Package className="w-4 h-4 mr-2" />
-                Poultry Products
               </a>
               <UserProfile />
             </div>
@@ -132,6 +132,14 @@ export default function Header() {
                   About This App
                 </button>
                 <a
+                  href="/poultry-products"
+                  className="w-full btn-ghost justify-start interactive-scale"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  <Package className="w-4 h-4 mr-3" />
+                  Poultry Products
+                </a>
+                <a
                   href="/breed-comparison"
                   className="w-full btn-ghost justify-start interactive-scale"
                   onClick={() => setShowMobileMenu(false)}
@@ -146,14 +154,6 @@ export default function Header() {
                 >
                   <FileText className="w-4 h-4 mr-3" />
                   Disclaimer
-                </a>
-                <a
-                  href="/poultry-products"
-                  className="w-full btn-ghost justify-start interactive-scale"
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  <Package className="w-4 h-4 mr-3" />
-                  Poultry Products
                 </a>
               </div>
             </div>
